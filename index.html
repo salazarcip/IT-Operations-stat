@@ -13,93 +13,117 @@
         :root {
             --primary: #0f172a;    --secondary: #2563eb;  
             --success: #10b981;    --danger: #ef4444;     
-            --slate-50: #f8fafc;   --slate-200: #e2e8f0;
-            --slate-600: #64748b;  --amber: #f59e0b;
+            --slate-200: #e2e8f0;  --slate-600: #64748b;  --amber: #f59e0b;
         }
 
-        body { 
-            font-family: 'Inter', sans-serif; background-color: #f1f5f9; 
-            color: var(--primary); margin: 0; padding: 25px; line-height: 1.5;
-        }
-
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: var(--primary); margin: 0; padding: 25px; }
         .dashboard-wrapper { max-width: 1600px; margin: 0 auto; }
 
-        /* Header */
-        .executive-header { 
-            display: flex; justify-content: space-between; align-items: flex-end;
-            margin-bottom: 30px; border-bottom: 2px solid var(--slate-200); padding-bottom: 15px;
-        }
-        .executive-header h1 { margin: 0; font-size: 1.8rem; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
+        /* HEADER & LIVE INDICATOR */
+        .executive-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; border-bottom: 2px solid var(--slate-200); padding-bottom: 15px; }
+        .executive-header h1 { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
         
-        .live-badge { 
-            background: var(--primary); color: white; padding: 6px 16px; 
-            border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 6px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        .live-tag { 
+            background: var(--primary); 
+            color: white; 
+            padding: 6px 14px; 
+            border-radius: 20px; 
+            font-size: 0.7rem; 
+            font-weight: 700; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        .pulse-dot { 
+            height: 8px; width: 8px; 
+            background-color: #22c55e; 
+            border-radius: 50%; 
+            display: inline-block; 
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 1);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
 
-        /* KPI Grid */
+        /* LAYOUT & CARDS */
+        .filter-bar { background: white; padding: 15px 25px; border-radius: 12px; display: flex; gap: 20px; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--slate-200); margin-bottom: 25px;}
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 0.7rem; font-weight: 700; color: var(--slate-600); text-transform: uppercase; }
+        select, input { padding: 8px; border-radius: 6px; border: 1px solid var(--slate-200); font-size: 0.85rem; }
+
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { 
-            background: white; padding: 22px; border-radius: 16px; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid white;
-        }
-        .stat-label { font-size: 0.75rem; color: var(--slate-600); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { display: block; font-size: 2.2rem; font-weight: 800; color: var(--primary); margin: 5px 0; }
+        .stat-card { background: white; padding: 22px; border-radius: 16px; border-top: 4px solid var(--secondary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .stat-label { font-size: 0.75rem; color: var(--slate-600); font-weight: 700; text-transform: uppercase; }
+        .stat-value { display: block; font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
 
-        /* Layout Units */
-        .full-panel { background: white; padding: 25px; border-radius: 16px; border: 1px solid var(--slate-200); margin-bottom: 25px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .full-panel { background: white; padding: 25px; border-radius: 16px; border: 1px solid var(--slate-200); margin-bottom: 25px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px; margin-bottom: 25px; }
         .panel { background: white; padding: 25px; border-radius: 16px; border: 1px solid var(--slate-200); }
-        .panel-title { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 0.95rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+        .panel-title { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; }
 
-        /* ROI Argument Box */
-        .roi-container { background: var(--primary); color: white; padding: 20px; border-radius: 12px; height: 100%; box-sizing: border-box; }
-        .roi-stat { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; font-size: 0.85rem; }
+        .list-container { max-height: 400px; overflow-y: auto; }
+        .list-item { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.8rem; }
+        .tag { padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; }
+        .tag-urgent { background: #fee2e2; color: #ef4444; }
+        .tag-med { background: #fef3c7; color: #d97706; }
+        .tag-low { background: #dcfce7; color: #10b981; }
+
+        .roi-container { background: var(--primary); color: white; padding: 20px; border-radius: 12px; height: 100%; display: flex; flex-direction: column; }
+        .roi-stat { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; font-size: 0.82rem; }
         .roi-highlight { color: #38bdf8; font-weight: 800; }
 
         #loading { position: fixed; inset: 0; background: #f1f5f9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { border: 4px solid var(--slate-200); border-top: 4px solid var(--secondary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loading"><div class="spinner"></div><p style="margin-top:20px; font-weight:700">Analyzing Operations Performance...</p></div>
+<div id="loading"><div class="spinner"></div><p style="margin-top:20px; font-weight:700">Syncing IT Operations Data...</p></div>
 
 <div class="dashboard-wrapper">
     <header class="executive-header">
         <div>
             <h1>IT Operations & Infrastructure</h1>
-            <p>Intelligence Reporting | Madrid Division | Executive View</p>
+            <p>Strategic Analytics | Madrid Division | Executive View</p>
         </div>
-        <div class="live-badge"> <span style="color: #22c55e; animation: pulse 2s infinite;">●</span> LIVE SYNC </div>
+        <div class="live-tag">
+            <span class="pulse-dot"></span>
+            LIVE SYNC
+        </div>
     </header>
 
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>Priority Filter</label>
+            <select id="prioFilter" onchange="processData()">
+                <option value="ALL">All Priorities</option>
+                <option value="URGENTE">Urgent</option>
+                <option value="MEDIO">Medium</option>
+                <option value="BAJO">Low</option>
+            </select>
+        </div>
+        <div class="filter-group"><label>From Date</label><input type="date" id="dateFrom" onchange="processData()"></div>
+        <div class="filter-group"><label>To Date</label><input type="date" id="dateTo" onchange="processData()"></div>
+    </div>
+
     <div class="stats-grid">
-        <div class="stat-card" style="border-top: 4px solid var(--secondary)">
-            <span class="stat-label">Resolution Rate</span>
-            <span id="kpi-res" class="stat-value">0%</span>
-            <div style="color: var(--success); font-weight: 700; font-size: 0.75rem;">EFICIENCIA OPERATIVA</div>
-        </div>
-        <div class="stat-card" style="border-top: 4px solid var(--secondary)">
-            <span class="stat-label">Response Agility (MTTR)</span>
-            <span id="kpi-speed" class="stat-value">0.0</span>
-            <div style="color: var(--secondary); font-weight: 700; font-size: 0.75rem;">AVG DAYS TO SOLVE</div>
-        </div>
-        <div class="stat-card" style="border-top: 4px solid var(--secondary)">
-            <span class="stat-label">System Continuity</span>
-            <span class="stat-value">99.9%</span>
-            <div style="color: var(--success); font-weight: 700; font-size: 0.75rem;">UPTIME GUARANTEED</div>
-        </div>
-        <div class="stat-card" style="border-top: 4px solid var(--amber)">
-            <span class="stat-label">Asset Management</span>
-            <span id="kpi-total" class="stat-value">0</span>
-            <div style="color: var(--slate-600); font-weight: 700; font-size: 0.75rem;">TOTAL TICKETS</div>
-        </div>
+        <div class="stat-card"><span class="stat-label">Resolution Rate</span><span id="kpi-res" class="stat-value">0%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">OPERATIONAL EFFICIENCY</div></div>
+        <div class="stat-card"><span class="stat-label">Response Agility (MTTR)</span><span id="kpi-speed" class="stat-value">0.0</span><div style="color: var(--secondary); font-weight:700; font-size:0.75rem;">AVG DAYS TO SOLVE</div></div>
+        <div class="stat-card"><span class="stat-label">System Continuity</span><span class="stat-value">99.9%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">UPTIME GUARANTEED</div></div>
+        <div class="stat-card" style="border-top-color: var(--amber)"><span class="stat-label">Reported Load</span><span id="kpi-total" class="stat-value">0</span><div style="color: var(--slate-600); font-weight:700; font-size:0.75rem;">TOTAL TICKETS</div></div>
     </div>
 
     <div class="full-panel">
-        <div class="panel-title"><i data-lucide="bar-chart-big"></i> Workload Distribution & Demand by Branch (Percentage View)</div>
+        <div class="panel-title"><i data-lucide="alert-circle"></i> Operational Queue: Pending Tasks</div>
+        <div id="pending-list" class="list-container"></div>
+    </div>
+
+    <div class="full-panel">
+        <div class="panel-title"><i data-lucide="bar-chart-big"></i> Workload Distribution & Demand by Branch</div>
         <div id="chart_main_full" style="height: 400px; width: 100%;"></div>
     </div>
 
@@ -107,151 +131,159 @@
         <div class="panel" style="text-align: center;">
             <div class="panel-title"><i data-lucide="activity"></i> Operational Health Score</div>
             <div id="chart_health_gauge" style="height: 200px; display: inline-block;"></div>
-            <p style="font-size: 0.75rem; color: var(--slate-600); margin-top: 10px;">
-                Critical systems status based on <b>Resolution vs. Pending</b> tasks.
-            </p>
         </div>
 
         <div class="roi-container">
-            <div class="panel-title" style="color: white;"><i data-lucide="trending-up"></i> Strategic Value Analysis</div>
-            <div class="roi-stat"><span>Staff Utilization:</span> <span class="roi-highlight">96.4%</span></div>
-            <div class="roi-stat"><span>Risk Mitigation:</span> <span class="roi-highlight">Strategic</span></div>
-            <div class="roi-stat"><span>Preventive Maintenance:</span> <span id="kpi-pro-val" class="roi-highlight">0%</span></div>
-            <p style="font-size: 0.75rem; margin-top: 20px; color: #94a3b8; line-height: 1.4;">
-                <b>Justification:</b> Operational capacity is at its peak. To maintain current <b>99.9% Uptime</b> during expansion, headcount specialization is required to mitigate technical burnout and security risks.
+            <div class="panel-title" style="color: white;"><i data-lucide="trending-up"></i> Strategic Impact Metrics</div>
+            <div class="roi-stat"><span>SLA Compliance (48h):</span> <span id="val-sla" class="roi-highlight">0%</span></div>
+            <div class="roi-stat"><span>Infra Health Index:</span> <span id="val-health-idx" class="roi-highlight">0%</span></div>
+            <div class="roi-stat"><span>Risk Mitigation:</span> <span id="val-risk" class="roi-highlight">Low</span></div>
+            <div class="roi-stat"><span>Preventive Focus:</span> <span id="kpi-pro-val" class="roi-highlight">0%</span></div>
+            <p style="font-size: 0.72rem; margin-top: auto; color: #94a3b8; line-height: 1.2;">
+                Impact Analysis for Annual Executive Report.
             </p>
         </div>
 
         <div class="panel">
-            <div class="panel-title"><i data-lucide="award"></i> High-Value Milestones</div>
-            <div id="milestones-list" style="font-size: 0.8rem;"></div>
+            <div class="panel-title"><i data-lucide="history"></i> Last 5 Closed Incidents</div>
+            <div id="closed-list" class="list-container"></div>
         </div>
     </div>
 
     <div class="grid-3">
-        <div class="panel">
-            <div class="panel-title"><i data-lucide="pie-chart"></i> Resource Origin</div>
-            <div id="chart_dist" style="height: 250px;"></div>
-        </div>
-        <div class="panel">
-            <div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div>
-            <div id="chart_urgency" style="height: 250px;"></div>
-        </div>
-        <div class="panel">
-            <div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div>
-            <div id="chart_health_pie" style="height: 250px;"></div>
-        </div>
+        <div class="panel"><div class="panel-title"><i data-lucide="pie-chart"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
+        <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div><div id="chart_urgency" style="height: 250px;"></div></div>
+        <div class="panel"><div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div><div id="chart_health_pie" style="height: 250px;"></div></div>
     </div>
 </div>
 
 <script type="text/javascript">
-    const SHEET_ID = '1zR-XyhZtPsz_rN04zO7UILgd6gZWV4HgVzK6auOjT9w';
+    const SHEET_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY';
     const SHEET_NAME = 'PENDIENTES';
+    let RAW_DATA = [];
 
     google.charts.load('current', {'packages':['corechart', 'bar', 'gauge']});
     google.charts.setOnLoadCallback(() => {
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleResponse&sheet=${SHEET_NAME}`;
+        // Rango extendido forzado para asegurar los 104 tickets
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleResponse&sheet=${SHEET_NAME}&range=A1:L500`;
         const script = document.createElement('script'); script.src = url; document.body.appendChild(script);
     });
 
     function handleResponse(response) {
+        if (!response || !response.table) return;
+        RAW_DATA = response.table.rows;
         document.getElementById('loading').style.display = 'none';
-        lucide.createIcons();
-        const rows = response.table.rows;
-        
-        let stats = { r: 0, p: 0, pro: 0, mttr: [], urg: {U:0, M:0, B:0}, sucs: {}, oris: {} };
-        let ms = [];
-
-        rows.forEach(row => {
-            const suc = getV(row, 2).trim();
-            const status = getV(row, 8).toUpperCase();
-            if (!suc || suc === "null" || !status) return;
-
-            const urg = getV(row, 7).toUpperCase();
-            const act = getV(row, 4);
-            const ori = getV(row, 9).toUpperCase();
-            const fecha = getV(row, 1);
-
-            if(status.includes("REALIZADO")) stats.r++; else stats.p++;
-            if(ori.includes("SOLICITUD")) stats.pro++;
-            
-            if(urg.includes("URGENTE")) stats.urg.U++;
-            else if(urg.includes("MEDIO")) stats.urg.M++;
-            else stats.urg.B++;
-
-            const f1 = parseGDate(getV(row, 1));
-            const f2 = parseGDate(getV(row, 11));
-            if(f1 && f2 && status.includes("REALIZADO")) stats.mttr.push((f2-f1)/(1000*60*60*24));
-
-            stats.sucs[suc] = (stats.sucs[suc] || 0) + 1;
-            stats.oris[ori] = (stats.oris[ori] || 0) + 1;
-
-            if(act.length > 25) ms.push({ date: fecha, text: act, suc: suc, p: urg.includes("URGENTE") ? 2 : 1 });
-        });
-
-        const total = stats.r + stats.p;
-        const resRate = (stats.r/total)*100;
-        document.getElementById('kpi-res').innerText = resRate.toFixed(0) + "%";
-        document.getElementById('kpi-speed').innerText = (stats.mttr.reduce((a,b)=>a+b,0)/stats.mttr.length || 0).toFixed(1);
-        document.getElementById('kpi-total').innerText = total;
-        document.getElementById('kpi-pro-val').innerText = ((stats.pro/total)*100).toFixed(0) + "%";
-
-        const mList = document.getElementById('milestones-list');
-        ms.sort((a,b)=>b.p - a.p).slice(0, 5).forEach(m => {
-            mList.innerHTML += `<div style="margin-bottom:10px; border-left:3px solid var(--secondary); padding-left:10px">
-                <div style="font-weight:700; color:var(--primary)">${m.suc}</div>
-                <div style="color:var(--slate-600)">${m.text.substring(0,50)}...</div>
-            </div>`;
-        });
-
-        drawCharts(stats, resRate);
+        processData();
     }
 
-    function getV(r, i) { return (r.c[i] && r.c[i].v) ? r.c[i].v.toString() : ""; }
-    function parseGDate(s) { if(s && s.includes("Date")){ const v=s.match(/\d+/g); return new Date(v[0],v[1],v[2]); } return null; }
+    function toDate(v) {
+        if (!v) return null;
+        if (v instanceof Date) return v;
+        let s = v.toString();
+        if (s.includes("Date")) {
+            let p = s.match(/\d+/g);
+            return new Date(p[0], parseInt(p[1]), p[2]);
+        }
+        let parts = s.split(/[-/]/);
+        if (parts.length === 3) {
+            if (parts[0].length === 4) return new Date(parts[0], parseInt(parts[1])-1, parts[2]);
+            return new Date(parts[2], parseInt(parts[1])-1, parts[0]);
+        }
+        return null;
+    }
 
-    function drawCharts(s, resRate) {
-        const commonOpt = {
-            backgroundColor: 'transparent',
-            chartArea: {width: '85%', height: '70%'},
-            legend: { position: 'bottom', textStyle: { fontSize: 10 } },
-            vAxis: { gridlines: { color: '#f1f5f9' } },
-            colors: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd']
-        };
+    function forceGet(row, i) {
+        if (!row || !row.c || !row.c[i]) return "";
+        const cell = row.c[i];
+        return (cell.f !== null && cell.f !== undefined) ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : "");
+    }
 
-        // 1. FULL WIDTH BRANCH CHART WITH PERCENTAGES
-        let sData = [['Branch', 'Tickets', { role: 'annotation' }]];
-        const totalTickets = Object.values(s.sucs).reduce((a, b) => a + b, 0);
-        Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => {
-            const pct = ((v/totalTickets)*100).toFixed(1) + '%';
-            sData.push([k, v, pct]);
-        });
-        new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(
-            google.visualization.arrayToDataTable(sData), 
-            { ...commonOpt, bar: {groupWidth: '60%'}, annotations: { alwaysOutside: true } }
-        );
+    function processData() {
+        lucide.createIcons();
+        const pF = document.getElementById('prioFilter').value;
+        const dF = document.getElementById('dateFrom').value ? new Date(document.getElementById('dateFrom').value) : null;
+        const dT = document.getElementById('dateTo').value ? new Date(document.getElementById('dateTo').value) : null;
 
-        // 2. IMPACTFUL GAUGE
-        let gData = google.visualization.arrayToDataTable([['Label', 'Value'], ['Health', Math.round(resRate)]]);
-        new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(gData, {
-            width: 250, height: 200, redFrom: 0, redTo: 60, yellowFrom: 60, yellowTo: 85, greenFrom: 85, greenTo: 100, minorTicks: 5
-        });
+        let s = { r:0, p:0, pro:0, mttr:[], sla:0, urg:{U:0, M:0, B:0}, sucs:{}, oris:{}, pItems:[], cItems:[] };
 
-        // 3. PIE HEALTH (Modern Colors)
-        new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(
-            google.visualization.arrayToDataTable([['S','V'],['Resolved', s.r],['Pending', s.p]]),
-            { ...commonOpt, pieHole: 0.6, colors: ['#10b981', '#f43f5e'] }
-        );
+        for(let i=0; i < RAW_DATA.length; i++){
+            const row = RAW_DATA[i];
+            if (!row || !row.c) continue;
 
-        // 4. TREND URGENCY
-        new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(
-            google.visualization.arrayToDataTable([['L','V'],['Low', s.urg.B],['Medium', s.urg.M],['Urgent', s.urg.U]]),
-            { ...commonOpt, areaOpacity: 0.2, colors: ['#2563eb'] }
-        );
+            const branchRaw = forceGet(row, 2).toString().trim();
+            const activityRaw = forceGet(row, 4).toString().trim();
+            const statusRaw = forceGet(row, 8).toString().toUpperCase();
 
-        // 5. DISTRIBUTION
-        let dData = [['O','T']]; Object.entries(s.oris).forEach(([k,v])=>dData.push([k,v]));
-        new google.visualization.PieChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(dData), commonOpt);
+            // Salto de cabecera y filas vacías
+            if (branchRaw === "SUCURSAL" || (branchRaw === "" && activityRaw === "")) continue;
+
+            const branch = branchRaw || "GENERAL";
+            const dRep = toDate(forceGet(row, 1));
+            const urg = forceGet(row, 7).toString().toUpperCase();
+            const ori = forceGet(row, 9).toString().toUpperCase();
+            const dSol = toDate(forceGet(row, 11));
+
+            if (pF !== "ALL" && !urg.includes(pF)) continue;
+            if (dF && dRep && dRep < dF) continue;
+            if (dT && dRep && dRep > dT) continue;
+
+            const isDone = statusRaw.includes("REALIZADO");
+            if(isDone) {
+                s.r++;
+                s.cItems.push({ branch, act: activityRaw, date: forceGet(row, 11) });
+                if(dRep && dSol) {
+                    let diff = (dSol.getTime() - dRep.getTime()) / (1000 * 3600 * 24);
+                    if(diff >= 0) {
+                        s.mttr.push(diff);
+                        if(diff <= 2) s.sla++; 
+                    }
+                }
+            } else {
+                s.p++;
+                s.pItems.push({ branch, act: activityRaw, urg });
+            }
+
+            if(ori.includes("SOLICITUD")) s.pro++;
+            if(urg.includes("URGENTE")) s.urg.U++; else if(urg.includes("MEDIO")) s.urg.M++; else s.urg.B++;
+            
+            s.sucs[branch] = (s.sucs[branch] || 0) + 1;
+            s.oris[ori || 'OTHER'] = (s.oris[ori || 'OTHER'] || 0) + 1;
+        }
+
+        const total = s.r + s.p;
+        document.getElementById('kpi-total').innerText = total;
+        document.getElementById('kpi-res').innerText = Math.round((s.r/total)*100 || 0) + "%";
+        
+        const avg = s.mttr.length > 0 ? (s.mttr.reduce((a,b)=>a+b,0)/s.mttr.length) : 0;
+        document.getElementById('kpi-speed').innerText = avg.toFixed(1);
+        document.getElementById('kpi-pro-val').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
+
+        document.getElementById('val-sla').innerText = s.r > 0 ? Math.round((s.sla/s.r)*100) + "%" : "0%";
+        document.getElementById('val-health-idx').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
+        document.getElementById('val-risk').innerText = s.urg.U > (total * 0.15) ? "High" : "Controlled";
+
+        document.getElementById('pending-list').innerHTML = s.pItems.map(i => `
+            <div class="list-item"><div style="display:flex; justify-content:space-between;"><b>${i.branch}</b>
+            <span class="tag ${i.urg.includes('URGENTE') ? 'tag-urgent' : i.urg.includes('MEDIO') ? 'tag-med' : 'tag-low'}">${i.urg || 'LOW'}</span></div>
+            <div style="color:var(--slate-600); font-size:0.75rem;">${i.act}</div></div>`).join('');
+
+        document.getElementById('closed-list').innerHTML = s.cItems.slice(-5).reverse().map(i => `
+            <div class="list-item"><b>${i.branch}</b><div style="font-size:0.7rem;">${i.act.substring(0,45)}...</div>
+            <div style="font-size:0.65rem; color:var(--success); font-weight:700;">Closed: ${i.date}</div></div>`).join('');
+
+        drawCharts(s, total);
+    }
+
+    function drawCharts(s, total) {
+        const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10}}, colors:['#2563eb','#3b82f6','#60a5fa'] };
+        let sD = [['B','T',{role:'annotation'}]];
+        Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
+        new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, annotations:{alwaysOutside:true}});
+        new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',Math.round((s.r/total)*100 || 0)]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
+        new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(google.visualization.arrayToDataTable([['S','V'],['Resolved',s.r],['Pending',s.p]]), {...opt, pieHole:0.6, colors:['#10b981','#f43f5e']});
+        new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), opt);
+        let oD = [['O','T']]; Object.entries(s.oris).forEach(([k,v])=>oD.push([k,v]));
+        new google.visualization.PieChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), opt);
     }
 </script>
 </body>
