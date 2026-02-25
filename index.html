@@ -68,11 +68,22 @@
         .roi-stat { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; font-size: 0.82rem; }
         .roi-highlight { color: #38bdf8; font-weight: 800; }
 
-        /* INVENTORY TABLE & BADGES */
+        /* INVENTORY & OPENINGS TABLE */
         .inventory-table { width: 100%; border-collapse: collapse; }
         .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); }
         .inventory-table td { padding: 12px; border-bottom: 1px solid var(--slate-200); font-size: 0.8rem; }
         .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; min-width: 85px; text-align: center; display: inline-block; }
+
+        /* APERTURAS CARDS */
+        .opening-card { border-left: 5px solid var(--amber); margin-bottom: 15px; background: white; padding: 18px; border-radius: 8px; border: 1px solid var(--slate-200); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
+        .opening-card.completed { border-left-color: var(--success); background: #f0fdf4; }
+        .date-badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        
+        .progress-mini-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.8s ease-in-out; }
+        .progress-text { font-size: 0.65rem; font-weight: 700; color: var(--slate-600); display: flex; justify-content: space-between; margin-top: 10px; }
+
+        .ready-badge { position: absolute; top: 18px; right: 100px; display: flex; align-items: center; gap: 5px; color: var(--success); font-size: 0.7rem; font-weight: 800; }
 
         #loading { position: fixed; inset: 0; background: #f1f5f9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { border: 4px solid var(--slate-200); border-top: 4px solid var(--secondary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
@@ -88,6 +99,7 @@
     <div class="tab-container">
         <button class="tab-btn active" id="btn-ops" onclick="showTab('ops')"><i data-lucide="activity"></i> OPERATIONS</button>
         <button class="tab-btn" id="btn-inv" onclick="showTab('inv')"><i data-lucide="package"></i> ASSET INVENTORY</button>
+        <button class="tab-btn" id="btn-open" onclick="showTab('open')"><i data-lucide="rocket"></i> UPCOMING OPENINGS</button>
     </div>
 
     <div id="section-ops">
@@ -158,18 +170,9 @@
         </header>
 
         <div class="stats-grid">
-            <div class="stat-card" style="border-top-color: var(--primary)">
-                <span class="stat-label">TOTAL EQUIPOS (SITIO/GLOBAL)</span>
-                <span id="inv-kpi-total" class="stat-value">0</span>
-            </div>
-            <div class="stat-card" style="border-top-color: var(--success)">
-                <span class="stat-label">ESTATUS OPERATIVOS</span>
-                <span id="inv-kpi-oper" class="stat-value" style="color: var(--success)">0</span>
-            </div>
-            <div class="stat-card" style="border-top-color: var(--danger)">
-                <span class="stat-label">EN REVISIÓN / FALLA / OTROS</span>
-                <span id="inv-kpi-falla" class="stat-value" style="color: var(--danger)">0</span>
-            </div>
+            <div class="stat-card" style="border-top-color: var(--primary)"><span class="stat-label">TOTAL ASSETS (SITE/GLOBAL)</span><span id="inv-kpi-total" class="stat-value">0</span></div>
+            <div class="stat-card" style="border-top-color: var(--success)"><span class="stat-label">OPERATIONAL STATUS</span><span id="inv-kpi-oper" class="stat-value" style="color: var(--success)">0</span></div>
+            <div class="stat-card" style="border-top-color: var(--danger)"><span class="stat-label">NON-OPERATIONAL / REVIEW</span><span id="inv-kpi-falla" class="stat-value" style="color: var(--danger)">0</span></div>
         </div>
 
         <div class="filter-bar">
@@ -180,12 +183,37 @@
         <div class="full-panel"><div class="panel-title"><i data-lucide="bar-chart-3"></i> SITE HEALTH DIAGRAM</div><div id="chart_site_distribution" style="height: 220px; width: 100%;"></div></div>
         <div class="full-panel" style="overflow-x:auto;"><table class="inventory-table"><thead><tr><th>Category</th><th>Model (ID)</th><th>Part Number</th><th>Brand</th><th>Qty</th><th>Serial</th><th>Status</th><th>Observations</th></tr></thead><tbody id="inventory-body"></tbody></table></div>
     </div>
+
+    <div id="section-open" class="hidden">
+        <header class="executive-header">
+            <div><h1>Opening Roadmap</h1><p>Strategic Growth & Deployment Timeline</p></div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="border-top-color: var(--amber)"><span class="stat-label">APERTURAS PENDIENTES</span><span id="open-kpi-pending" class="stat-value">0</span></div>
+            <div class="stat-card" style="border-top-color: var(--success)"><span class="stat-label">APERTURAS COMPLETADAS</span><span id="open-kpi-done" class="stat-value">0</span></div>
+            <div class="stat-card" style="border-top-color: var(--secondary)"><span class="stat-label">TOTAL PROYECTOS</span><span id="open-kpi-total" class="stat-value">0</span></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+            <div class="full-panel">
+                <div class="panel-title"><i data-lucide="clock" style="color: var(--amber);"></i> PRÓXIMAS APERTURAS</div>
+                <div id="upcoming-list" class="list-container" style="max-height: 550px;"></div>
+            </div>
+            <div class="full-panel">
+                <div class="panel-title"><i data-lucide="check-circle" style="color: var(--success);"></i> PROYECTOS FINALIZADOS</div>
+                <div id="completed-openings-list" class="list-container" style="max-height: 550px;"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
     const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY';
     const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s';
-    let RAW_DATA = []; let INV_DATA = [];
+    const OPEN_ID = '12pQ8Kvh3x1p9DVkQ4H9u222Hqi7kB2bACHhchkbYEKI';
+
+    let RAW_DATA = []; let INV_DATA = []; let OPEN_DATA = [];
 
     google.charts.load('current', {'packages':['corechart', 'bar', 'gauge']});
     google.charts.setOnLoadCallback(init);
@@ -193,20 +221,16 @@
     function init() {
         loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L500`);
         loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863`);
+        loadScript(`https://docs.google.com/spreadsheets/d/${OPEN_ID}/gviz/tq?tqx=responseHandler:handleOpen&sheet=Sheet1`);
     }
 
     function loadScript(url) { const s = document.createElement('script'); s.src = url; document.body.appendChild(s); }
-    function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
     
-    function handleInv(r) { 
-        INV_DATA = r.table.rows; 
-        populateSiteFilter(); 
-        updateInventoryWildcards(""); // Carga totales globales al inicio
-        renderInventory(); // Muestra tabla global al inicio
-        checkLoading(); 
-    }
+    function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
+    function handleInv(r) { INV_DATA = r.table.rows; populateSiteFilter(); updateInventoryWildcards(""); renderInventory(); checkLoading(); }
+    function handleOpen(r) { OPEN_DATA = r.table.rows; processOpenings(); checkLoading(); }
 
-    function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
+    function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0 && OPEN_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
 
     function forceGet(row, i) {
         if (!row || !row.c || !row.c[i]) return "";
@@ -225,7 +249,7 @@
         return isNaN(ts) ? null : new Date(ts);
     }
 
-    // OPERACIONES: PROCESAMIENTO
+    // --- LOGICA OPERACIONES ---
     function processData() {
         lucide.createIcons();
         const pF = document.getElementById('prioFilter').value;
@@ -301,8 +325,8 @@
         new google.visualization.PieChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), opt);
     }
 
-    // INVENTARIO: LÓGICA DINÁMICA
-    function updateInventoryWildcards(selectedSite = "") {
+    // --- LOGICA INVENTARIO ---
+    function updateInventoryWildcards(selectedSite) {
         let total = 0, oper = 0, falla = 0;
         for (let i = 1; i < INV_DATA.length; i++) {
             const row = INV_DATA[i];
@@ -311,8 +335,7 @@
             if (selectedSite && site !== selectedSite) continue;
             total++;
             if (status.includes('OPERATIVO')) oper++;
-            else if (status.includes('DAÑADO') || status.includes('REVISIÓN') || status.includes('FALLA') || status.includes('NO ENTREGADO')) falla++;
-            else falla++; // Bodegas u otros también se consideran fuera de servicio operativo inmediato
+            else falla++;
         }
         document.getElementById('inv-kpi-total').innerText = total;
         document.getElementById('inv-kpi-oper').innerText = oper;
@@ -320,44 +343,31 @@
     }
 
     function renderInventory() {
-        const selectedSite = document.getElementById('siteFilter').value;
+        const site = document.getElementById('siteFilter').value;
         const tbody = document.getElementById('inventory-body');
         tbody.innerHTML = '';
-        
-        updateInventoryWildcards(selectedSite);
-
+        updateInventoryWildcards(site);
         let stats = { operative: 0, damaged: 0, warehouse: 0, other: 0 };
         for(let i = 1; i < INV_DATA.length; i++) {
             const row = INV_DATA[i];
-            if (selectedSite && forceGet(row, 0) !== selectedSite) continue;
-
+            if (site && forceGet(row, 0) !== site) continue;
             const status = forceGet(row, 7).toUpperCase();
             let color = '#71717a', bg = '#f4f4f5';
-
             if(status.includes('OPERATIVO')) { color = '#065f46'; bg = '#d1fae5'; stats.operative++; }
             else if(status.includes('DAÑADO') || status.includes('FALLA')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
             else if(status.includes('BODEGA')) { color = '#1e40af'; bg = '#dbeafe'; stats.warehouse++; }
-            else { stats.other++; }
-
+            else stats.other++;
             tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
         }
-        
-        const data = google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla/Dañado', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]);
-        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(data, { pieHole: 0.4, chartArea: {width: '90%', height: '80%'}, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
+        const data = google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]);
+        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(data, { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
     }
 
     function populateSiteFilter() {
         const select = document.getElementById('siteFilter');
         const sites = new Set();
-        for(let i=1; i < INV_DATA.length; i++) {
-            const s = forceGet(INV_DATA[i], 0);
-            if(s) sites.add(s);
-        }
-        Array.from(sites).sort().forEach(site => {
-            const opt = document.createElement('option');
-            opt.value = site; opt.innerText = site;
-            select.appendChild(opt);
-        });
+        for(let i=1; i < INV_DATA.length; i++) { const s = forceGet(INV_DATA[i], 0); if(s) sites.add(s); }
+        Array.from(sites).sort().forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.innerText = s; select.appendChild(opt); });
     }
 
     function filterInventoryTable() {
@@ -365,11 +375,67 @@
         document.querySelectorAll('#inventory-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
     }
 
+    // --- LOGICA APERTURAS (MODIFICADA: SALTO AL 100% Y SELLO READY) ---
+    function processOpenings() {
+        const upcomingContainer = document.getElementById('upcoming-list');
+        const completedContainer = document.getElementById('completed-openings-list');
+        let upHtml = '', compHtml = '', pCount = 0, dCount = 0;
+
+        for (let i = 1; i < OPEN_DATA.length; i++) {
+            const row = OPEN_DATA[i];
+            const name = forceGet(row, 0); if(!name || name === "SITIO") continue;
+            
+            const date = forceGet(row, 1);
+            const statusRaw = forceGet(row, 2);
+            const status = statusRaw.toUpperCase();
+            
+            const obraPct = parseInt(forceGet(row, 3).toString().replace('%','')) || 0;
+            const sistPct = parseInt(forceGet(row, 4).toString().replace('%','')) || 0;
+
+            // LOGICA MEJORADA: Salta a completados si el estatus lo dice O si ambos avances están al 100
+            const isCompleted = status.includes("COMPLETADO") || status.includes("DONE") || (obraPct >= 100 && sistPct >= 100);
+
+            const card = `
+                <div class="opening-card ${isCompleted ? 'completed' : ''}">
+                    ${(obraPct >= 100 && sistPct >= 100) ? '<div class="ready-badge"><i data-lucide="check-circle"></i> READY</div>' : ''}
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                        <div>
+                            <strong style="font-size:1.1rem; color:var(--primary);">${name}</strong>
+                            <div style="font-size:0.7rem; color:var(--slate-600); font-weight:700; margin-top:4px;">STATUS: ${statusRaw}</div>
+                        </div>
+                        <span class="date-badge">${date}</span>
+                    </div>
+                    
+                    <div>
+                        <div class="progress-text"><span>AVANCE OBRA</span> <span>${obraPct}%</span></div>
+                        <div class="progress-mini-bar"><div class="progress-fill" style="width: ${obraPct}%; background-color: ${obraPct >= 100 ? 'var(--success)' : 'var(--amber)'};"></div></div>
+                        
+                        <div class="progress-text" style="margin-top:10px;"><span>AVANCE SISTEMA</span> <span>${sistPct}%</span></div>
+                        <div class="progress-mini-bar"><div class="progress-fill" style="width: ${sistPct}%; background-color: ${sistPct >= 100 ? 'var(--success)' : 'var(--secondary)'};"></div></div>
+                    </div>
+                </div>`;
+
+            if (isCompleted) { compHtml += card; dCount++; }
+            else { upHtml += card; pCount++; }
+        }
+
+        upcomingContainer.innerHTML = upHtml || '<p style="padding:20px; color:var(--slate-600);">No hay aperturas pendientes.</p>';
+        completedContainer.innerHTML = compHtml || '<p style="padding:20px; color:var(--slate-600);">No hay proyectos finalizados.</p>';
+        
+        document.getElementById('open-kpi-pending').innerText = pCount;
+        document.getElementById('open-kpi-done').innerText = dCount;
+        document.getElementById('open-kpi-total').innerText = pCount + dCount;
+        
+        lucide.createIcons();
+    }
+
     function showTab(t) {
         document.getElementById('section-ops').classList.toggle('hidden', t !== 'ops');
         document.getElementById('section-inv').classList.toggle('hidden', t !== 'inv');
+        document.getElementById('section-open').classList.toggle('hidden', t !== 'open');
         document.getElementById('btn-ops').classList.toggle('active', t === 'ops');
         document.getElementById('btn-inv').classList.toggle('active', t === 'inv');
+        document.getElementById('btn-open').classList.toggle('active', t === 'open');
         lucide.createIcons();
     }
 </script>
