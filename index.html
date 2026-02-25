@@ -14,41 +14,34 @@
             --primary: #0f172a;    --secondary: #2563eb;  
             --success: #10b981;    --danger: #ef4444;     
             --slate-200: #e2e8f0;  --slate-600: #64748b;  --amber: #f59e0b;
+            --slate-100: #f1f5f9;
         }
 
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: var(--primary); margin: 0; padding: 25px; }
         .dashboard-wrapper { max-width: 1600px; margin: 0 auto; }
 
+        /* TABS */
+        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--slate-200); padding-bottom: 10px; }
+        .tab-btn { 
+            padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; 
+            font-weight: 700; font-size: 0.9rem; transition: 0.3s; background: var(--slate-200); color: var(--slate-600);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tab-btn.active { background: var(--secondary); color: white; }
+
         /* HEADER & LIVE INDICATOR */
         .executive-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; border-bottom: 2px solid var(--slate-200); padding-bottom: 15px; }
         .executive-header h1 { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
         
-        .live-tag { 
-            background: var(--primary); 
-            color: white; 
-            padding: 6px 14px; 
-            border-radius: 20px; 
-            font-size: 0.7rem; 
-            font-weight: 700; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-        }
-        .pulse-dot { 
-            height: 8px; width: 8px; 
-            background-color: #22c55e; 
-            border-radius: 50%; 
-            display: inline-block; 
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 1);
-            animation: pulse-green 2s infinite;
-        }
+        .live-tag { background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .pulse-dot { height: 8px; width: 8px; background-color: #22c55e; border-radius: 50%; display: inline-block; animation: pulse-green 2s infinite; }
         @keyframes pulse-green {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
 
-        /* LAYOUT & CARDS */
+        /* FILTERS & CARDS */
         .filter-bar { background: white; padding: 15px 25px; border-radius: 12px; display: flex; gap: 20px; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--slate-200); margin-bottom: 25px;}
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 0.7rem; font-weight: 700; color: var(--slate-600); text-transform: uppercase; }
@@ -75,105 +68,149 @@
         .roi-stat { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px; font-size: 0.82rem; }
         .roi-highlight { color: #38bdf8; font-weight: 800; }
 
+        /* INVENTORY TABLE & BADGES */
+        .inventory-table { width: 100%; border-collapse: collapse; }
+        .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); }
+        .inventory-table td { padding: 12px; border-bottom: 1px solid var(--slate-200); font-size: 0.8rem; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; min-width: 85px; text-align: center; display: inline-block; }
+
         #loading { position: fixed; inset: 0; background: #f1f5f9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { border: 4px solid var(--slate-200); border-top: 4px solid var(--secondary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="loading"><div class="spinner"></div><p style="margin-top:20px; font-weight:700">Syncing IT Operations Data...</p></div>
+<div id="loading"><div class="spinner"></div><p style="margin-top:20px; font-weight:700">Syncing IT Ecosystem...</p></div>
 
 <div class="dashboard-wrapper">
-    <header class="executive-header">
-        <div>
-            <h1>IT Operations & Infrastructure</h1>
-            <p>Strategic Analytics | Madrid Division | Executive View</p>
-        </div>
-        <div class="live-tag">
-            <span class="pulse-dot"></span>
-            LIVE SYNC
-        </div>
-    </header>
-
-    <div class="filter-bar">
-        <div class="filter-group">
-            <label>Priority Filter</label>
-            <select id="prioFilter" onchange="processData()">
-                <option value="ALL">All Priorities</option>
-                <option value="URGENTE">Urgent</option>
-                <option value="MEDIO">Medium</option>
-                <option value="BAJO">Low</option>
-            </select>
-        </div>
-        <div class="filter-group"><label>From Date</label><input type="date" id="dateFrom" onchange="processData()"></div>
-        <div class="filter-group"><label>To Date</label><input type="date" id="dateTo" onchange="processData()"></div>
+    <div class="tab-container">
+        <button class="tab-btn active" id="btn-ops" onclick="showTab('ops')"><i data-lucide="activity"></i> OPERATIONS</button>
+        <button class="tab-btn" id="btn-inv" onclick="showTab('inv')"><i data-lucide="package"></i> ASSET INVENTORY</button>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card"><span class="stat-label">Resolution Rate</span><span id="kpi-res" class="stat-value">0%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">OPERATIONAL EFFICIENCY</div></div>
-        <div class="stat-card"><span class="stat-label">Response Agility (MTTR)</span><span id="kpi-speed" class="stat-value">0.0</span><div style="color: var(--secondary); font-weight:700; font-size:0.75rem;">AVG DAYS TO SOLVE</div></div>
-        <div class="stat-card"><span class="stat-label">System Continuity</span><span class="stat-value">99.9%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">UPTIME GUARANTEED</div></div>
-        <div class="stat-card" style="border-top-color: var(--amber)"><span class="stat-label">Reported Load</span><span id="kpi-total" class="stat-value">0</span><div style="color: var(--slate-600); font-weight:700; font-size:0.75rem;">TOTAL TICKETS</div></div>
-    </div>
+    <div id="section-ops">
+        <header class="executive-header">
+            <div><h1>IT Operations & Infrastructure</h1><p>Strategic Analytics | Madrid Division | Executive View</p></div>
+            <div class="live-tag"><span class="pulse-dot"></span> LIVE SYNC</div>
+        </header>
 
-    <div class="full-panel">
-        <div class="panel-title"><i data-lucide="alert-circle"></i> Operational Queue: Pending Tasks</div>
-        <div id="pending-list" class="list-container"></div>
-    </div>
-
-    <div class="full-panel">
-        <div class="panel-title"><i data-lucide="bar-chart-big"></i> Workload Distribution & Demand by Branch</div>
-        <div id="chart_main_full" style="height: 400px; width: 100%;"></div>
-    </div>
-
-    <div class="grid-3">
-        <div class="panel" style="text-align: center;">
-            <div class="panel-title"><i data-lucide="activity"></i> Operational Health Score</div>
-            <div id="chart_health_gauge" style="height: 200px; display: inline-block;"></div>
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Priority Filter</label>
+                <select id="prioFilter" onchange="processData()">
+                    <option value="ALL">All Priorities</option>
+                    <option value="URGENTE">Urgent</option>
+                    <option value="MEDIO">Medium</option>
+                    <option value="BAJO">Low</option>
+                </select>
+            </div>
+            <div class="filter-group"><label>From Date</label><input type="date" id="dateFrom" onchange="processData()"></div>
+            <div class="filter-group"><label>To Date</label><input type="date" id="dateTo" onchange="processData()"></div>
         </div>
 
-        <div class="roi-container">
-            <div class="panel-title" style="color: white;"><i data-lucide="trending-up"></i> Strategic Impact Metrics</div>
-            <div class="roi-stat"><span>SLA Compliance (48h):</span> <span id="val-sla" class="roi-highlight">0%</span></div>
-            <div class="roi-stat"><span>Infra Health Index:</span> <span id="val-health-idx" class="roi-highlight">0%</span></div>
-            <div class="roi-stat"><span>Risk Mitigation:</span> <span id="val-risk" class="roi-highlight">Low</span></div>
-            <div class="roi-stat"><span>Preventive Focus:</span> <span id="kpi-pro-val" class="roi-highlight">0%</span></div>
-            <p style="font-size: 0.72rem; margin-top: auto; color: #94a3b8; line-height: 1.2;">
-                Impact Analysis for Annual Executive Report.
-            </p>
+        <div class="stats-grid">
+            <div class="stat-card"><span class="stat-label">Resolution Rate</span><span id="kpi-res" class="stat-value">0%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">OPERATIONAL EFFICIENCY</div></div>
+            <div class="stat-card"><span class="stat-label">Response Agility (MTTR)</span><span id="kpi-speed" class="stat-value">0.0</span><div style="color: var(--secondary); font-weight:700; font-size:0.75rem;">AVG DAYS TO SOLVE</div></div>
+            <div class="stat-card"><span class="stat-label">System Continuity</span><span class="stat-value">99.9%</span><div style="color: var(--success); font-weight:700; font-size:0.75rem;">UPTIME GUARANTEED</div></div>
+            <div class="stat-card" style="border-top-color: var(--amber)"><span class="stat-label">Reported Load</span><span id="kpi-total" class="stat-value">0</span><div style="color: var(--slate-600); font-weight:700; font-size:0.75rem;">TOTAL TICKETS</div></div>
         </div>
 
-        <div class="panel">
-            <div class="panel-title"><i data-lucide="history"></i> Last 5 Closed Incidents</div>
-            <div id="closed-list" class="list-container"></div>
+        <div class="full-panel">
+            <div class="panel-title"><i data-lucide="alert-circle"></i> Operational Queue: Pending Tasks</div>
+            <div id="pending-list" class="list-container"></div>
+        </div>
+
+        <div class="full-panel">
+            <div class="panel-title"><i data-lucide="bar-chart-big"></i> Workload Distribution & Demand by Branch</div>
+            <div id="chart_main_full" style="height: 400px; width: 100%;"></div>
+        </div>
+
+        <div class="grid-3">
+            <div class="panel" style="text-align: center;">
+                <div class="panel-title"><i data-lucide="activity"></i> Operational Health Score</div>
+                <div id="chart_health_gauge" style="height: 200px; display: inline-block;"></div>
+            </div>
+            <div class="roi-container">
+                <div class="panel-title" style="color: white;"><i data-lucide="trending-up"></i> Strategic Impact Metrics</div>
+                <div class="roi-stat"><span>SLA Compliance (48h):</span> <span id="val-sla" class="roi-highlight">0%</span></div>
+                <div class="roi-stat"><span>Infra Health Index:</span> <span id="val-health-idx" class="roi-highlight">0%</span></div>
+                <div class="roi-stat"><span>Risk Mitigation:</span> <span id="val-risk" class="roi-highlight">Low</span></div>
+                <div class="roi-stat"><span>Preventive Focus:</span> <span id="kpi-pro-val" class="roi-highlight">0%</span></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title"><i data-lucide="history"></i> Last 5 Closed Incidents</div>
+                <div id="closed-list" class="list-container"></div>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="panel"><div class="panel-title"><i data-lucide="pie-chart"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
+            <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div><div id="chart_urgency" style="height: 250px;"></div></div>
+            <div class="panel"><div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div><div id="chart_health_pie" style="height: 250px;"></div></div>
         </div>
     </div>
 
-    <div class="grid-3">
-        <div class="panel"><div class="panel-title"><i data-lucide="pie-chart"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
-        <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div><div id="chart_urgency" style="height: 250px;"></div></div>
-        <div class="panel"><div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div><div id="chart_health_pie" style="height: 250px;"></div></div>
+    <div id="section-inv" class="hidden">
+        <header class="executive-header">
+            <div><h1>Global Asset Inventory</h1><p>Strategic Asset Tracking by Site Status</p></div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="border-top-color: var(--primary)">
+                <span class="stat-label">TOTAL EQUIPOS (SITIO/GLOBAL)</span>
+                <span id="inv-kpi-total" class="stat-value">0</span>
+            </div>
+            <div class="stat-card" style="border-top-color: var(--success)">
+                <span class="stat-label">ESTATUS OPERATIVOS</span>
+                <span id="inv-kpi-oper" class="stat-value" style="color: var(--success)">0</span>
+            </div>
+            <div class="stat-card" style="border-top-color: var(--danger)">
+                <span class="stat-label">EN REVISIÓN / FALLA / OTROS</span>
+                <span id="inv-kpi-falla" class="stat-value" style="color: var(--danger)">0</span>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group"><label>Branch / Site</label><select id="siteFilter" onchange="renderInventory()"><option value="">-- Global (All Sites) --</option></select></div>
+            <div class="filter-group" style="flex-grow: 1;"><label>Search Assets</label><input type="text" id="invSearch" placeholder="Filter by PN, Serial..." onkeyup="filterInventoryTable()"></div>
+        </div>
+
+        <div class="full-panel"><div class="panel-title"><i data-lucide="bar-chart-3"></i> SITE HEALTH DIAGRAM</div><div id="chart_site_distribution" style="height: 220px; width: 100%;"></div></div>
+        <div class="full-panel" style="overflow-x:auto;"><table class="inventory-table"><thead><tr><th>Category</th><th>Model (ID)</th><th>Part Number</th><th>Brand</th><th>Qty</th><th>Serial</th><th>Status</th><th>Observations</th></tr></thead><tbody id="inventory-body"></tbody></table></div>
     </div>
 </div>
 
 <script type="text/javascript">
-    const SHEET_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY';
-    const SHEET_NAME = 'PENDIENTES';
-    let RAW_DATA = [];
+    const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY';
+    const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s';
+    let RAW_DATA = []; let INV_DATA = [];
 
     google.charts.load('current', {'packages':['corechart', 'bar', 'gauge']});
-    google.charts.setOnLoadCallback(() => {
-        // Rango extendido forzado para asegurar los 104 tickets
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleResponse&sheet=${SHEET_NAME}&range=A1:L500`;
-        const script = document.createElement('script'); script.src = url; document.body.appendChild(script);
-    });
+    google.charts.setOnLoadCallback(init);
 
-    function handleResponse(response) {
-        if (!response || !response.table) return;
-        RAW_DATA = response.table.rows;
-        document.getElementById('loading').style.display = 'none';
-        processData();
+    function init() {
+        loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L500`);
+        loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863`);
+    }
+
+    function loadScript(url) { const s = document.createElement('script'); s.src = url; document.body.appendChild(s); }
+    function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
+    
+    function handleInv(r) { 
+        INV_DATA = r.table.rows; 
+        populateSiteFilter(); 
+        updateInventoryWildcards(""); // Carga totales globales al inicio
+        renderInventory(); // Muestra tabla global al inicio
+        checkLoading(); 
+    }
+
+    function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
+
+    function forceGet(row, i) {
+        if (!row || !row.c || !row.c[i]) return "";
+        return row.c[i].f || (row.c[i].v !== null ? row.c[i].v : "");
     }
 
     function toDate(v) {
@@ -182,22 +219,13 @@
         let s = v.toString();
         if (s.includes("Date")) {
             let p = s.match(/\d+/g);
-            return new Date(p[0], parseInt(p[1]), p[2]);
+            if (p && p.length >= 3) return new Date(parseInt(p[0]), parseInt(p[1]), parseInt(p[2]));
         }
-        let parts = s.split(/[-/]/);
-        if (parts.length === 3) {
-            if (parts[0].length === 4) return new Date(parts[0], parseInt(parts[1])-1, parts[2]);
-            return new Date(parts[2], parseInt(parts[1])-1, parts[0]);
-        }
-        return null;
+        let ts = Date.parse(s);
+        return isNaN(ts) ? null : new Date(ts);
     }
 
-    function forceGet(row, i) {
-        if (!row || !row.c || !row.c[i]) return "";
-        const cell = row.c[i];
-        return (cell.f !== null && cell.f !== undefined) ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : "");
-    }
-
+    // OPERACIONES: PROCESAMIENTO
     function processData() {
         lucide.createIcons();
         const pF = document.getElementById('prioFilter').value;
@@ -208,58 +236,45 @@
 
         for(let i=0; i < RAW_DATA.length; i++){
             const row = RAW_DATA[i];
-            if (!row || !row.c) continue;
-
             const branchRaw = forceGet(row, 2).toString().trim();
             const activityRaw = forceGet(row, 4).toString().trim();
-            const statusRaw = forceGet(row, 8).toString().toUpperCase();
+            if (branchRaw === "SUCURSAL" || (!branchRaw && !activityRaw)) continue;
 
-            // Salto de cabecera y filas vacías
-            if (branchRaw === "SUCURSAL" || (branchRaw === "" && activityRaw === "")) continue;
-
-            const branch = branchRaw || "GENERAL";
-            const dRep = toDate(forceGet(row, 1));
-            const urg = forceGet(row, 7).toString().toUpperCase();
-            const ori = forceGet(row, 9).toString().toUpperCase();
-            const dSol = toDate(forceGet(row, 11));
+            const status = forceGet(row, 8).toUpperCase();
+            const dRep = toDate(row.c[1]?.v);
+            const dSol = toDate(row.c[11]?.v);
+            const urg = forceGet(row, 7).toUpperCase();
+            const ori = forceGet(row, 9).toUpperCase();
 
             if (pF !== "ALL" && !urg.includes(pF)) continue;
             if (dF && dRep && dRep < dF) continue;
             if (dT && dRep && dRep > dT) continue;
 
-            const isDone = statusRaw.includes("REALIZADO");
-            if(isDone) {
+            if(status.includes("REALIZADO")) {
                 s.r++;
-                s.cItems.push({ branch, act: activityRaw, date: forceGet(row, 11) });
+                s.cItems.push({ branch: branchRaw, act: activityRaw, date: forceGet(row, 11) });
                 if(dRep && dSol) {
-                    let diff = (dSol.getTime() - dRep.getTime()) / (1000 * 3600 * 24);
-                    if(diff >= 0) {
-                        s.mttr.push(diff);
-                        if(diff <= 2) s.sla++; 
-                    }
+                    let diff = (dSol.getTime() - dRep.getTime()) / 86400000;
+                    if(diff >= 0 && diff < 30) { s.mttr.push(diff); if(diff <= 2) s.sla++; }
                 }
             } else {
                 s.p++;
-                s.pItems.push({ branch, act: activityRaw, urg });
+                s.pItems.push({ branch: branchRaw, act: activityRaw, urg });
             }
-
             if(ori.includes("SOLICITUD")) s.pro++;
             if(urg.includes("URGENTE")) s.urg.U++; else if(urg.includes("MEDIO")) s.urg.M++; else s.urg.B++;
-            
-            s.sucs[branch] = (s.sucs[branch] || 0) + 1;
+            s.sucs[branchRaw] = (s.sucs[branchRaw] || 0) + 1;
             s.oris[ori || 'OTHER'] = (s.oris[ori || 'OTHER'] || 0) + 1;
         }
 
         const total = s.r + s.p;
         document.getElementById('kpi-total').innerText = total;
         document.getElementById('kpi-res').innerText = Math.round((s.r/total)*100 || 0) + "%";
-        
         const avg = s.mttr.length > 0 ? (s.mttr.reduce((a,b)=>a+b,0)/s.mttr.length) : 0;
         document.getElementById('kpi-speed').innerText = avg.toFixed(1);
-        document.getElementById('kpi-pro-val').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
-
         document.getElementById('val-sla').innerText = s.r > 0 ? Math.round((s.sla/s.r)*100) + "%" : "0%";
         document.getElementById('val-health-idx').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
+        document.getElementById('kpi-pro-val').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
         document.getElementById('val-risk').innerText = s.urg.U > (total * 0.15) ? "High" : "Controlled";
 
         document.getElementById('pending-list').innerHTML = s.pItems.map(i => `
@@ -270,11 +285,11 @@
         document.getElementById('closed-list').innerHTML = s.cItems.slice(-5).reverse().map(i => `
             <div class="list-item"><b>${i.branch}</b><div style="font-size:0.7rem;">${i.act.substring(0,45)}...</div>
             <div style="font-size:0.65rem; color:var(--success); font-weight:700;">Closed: ${i.date}</div></div>`).join('');
-
-        drawCharts(s, total);
+        
+        drawOpsCharts(s, total);
     }
 
-    function drawCharts(s, total) {
+    function drawOpsCharts(s, total) {
         const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10}}, colors:['#2563eb','#3b82f6','#60a5fa'] };
         let sD = [['B','T',{role:'annotation'}]];
         Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
@@ -284,6 +299,78 @@
         new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), opt);
         let oD = [['O','T']]; Object.entries(s.oris).forEach(([k,v])=>oD.push([k,v]));
         new google.visualization.PieChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), opt);
+    }
+
+    // INVENTARIO: LÓGICA DINÁMICA
+    function updateInventoryWildcards(selectedSite = "") {
+        let total = 0, oper = 0, falla = 0;
+        for (let i = 1; i < INV_DATA.length; i++) {
+            const row = INV_DATA[i];
+            const site = forceGet(row, 0);
+            const status = forceGet(row, 7).toUpperCase();
+            if (selectedSite && site !== selectedSite) continue;
+            total++;
+            if (status.includes('OPERATIVO')) oper++;
+            else if (status.includes('DAÑADO') || status.includes('REVISIÓN') || status.includes('FALLA') || status.includes('NO ENTREGADO')) falla++;
+            else falla++; // Bodegas u otros también se consideran fuera de servicio operativo inmediato
+        }
+        document.getElementById('inv-kpi-total').innerText = total;
+        document.getElementById('inv-kpi-oper').innerText = oper;
+        document.getElementById('inv-kpi-falla').innerText = falla;
+    }
+
+    function renderInventory() {
+        const selectedSite = document.getElementById('siteFilter').value;
+        const tbody = document.getElementById('inventory-body');
+        tbody.innerHTML = '';
+        
+        updateInventoryWildcards(selectedSite);
+
+        let stats = { operative: 0, damaged: 0, warehouse: 0, other: 0 };
+        for(let i = 1; i < INV_DATA.length; i++) {
+            const row = INV_DATA[i];
+            if (selectedSite && forceGet(row, 0) !== selectedSite) continue;
+
+            const status = forceGet(row, 7).toUpperCase();
+            let color = '#71717a', bg = '#f4f4f5';
+
+            if(status.includes('OPERATIVO')) { color = '#065f46'; bg = '#d1fae5'; stats.operative++; }
+            else if(status.includes('DAÑADO') || status.includes('FALLA')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
+            else if(status.includes('BODEGA')) { color = '#1e40af'; bg = '#dbeafe'; stats.warehouse++; }
+            else { stats.other++; }
+
+            tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
+        }
+        
+        const data = google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla/Dañado', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]);
+        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(data, { pieHole: 0.4, chartArea: {width: '90%', height: '80%'}, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
+    }
+
+    function populateSiteFilter() {
+        const select = document.getElementById('siteFilter');
+        const sites = new Set();
+        for(let i=1; i < INV_DATA.length; i++) {
+            const s = forceGet(INV_DATA[i], 0);
+            if(s) sites.add(s);
+        }
+        Array.from(sites).sort().forEach(site => {
+            const opt = document.createElement('option');
+            opt.value = site; opt.innerText = site;
+            select.appendChild(opt);
+        });
+    }
+
+    function filterInventoryTable() {
+        const val = document.getElementById('invSearch').value.toLowerCase();
+        document.querySelectorAll('#inventory-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
+    }
+
+    function showTab(t) {
+        document.getElementById('section-ops').classList.toggle('hidden', t !== 'ops');
+        document.getElementById('section-inv').classList.toggle('hidden', t !== 'inv');
+        document.getElementById('btn-ops').classList.toggle('active', t === 'ops');
+        document.getElementById('btn-inv').classList.toggle('active', t === 'inv');
+        lucide.createIcons();
     }
 </script>
 </body>
