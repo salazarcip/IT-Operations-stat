@@ -153,7 +153,7 @@
         </div>
 
         <div class="grid-3">
-            <div class="panel"><div class="panel-title"><i data-lucide="pie-chart"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
+            <div class="panel"><div class="panel-title"><i data-lucide="briefcase"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
             <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div><div id="chart_urgency" style="height: 250px;"></div></div>
             <div class="panel"><div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div><div id="chart_health_pie" style="height: 250px;"></div></div>
         </div>
@@ -215,11 +215,9 @@
     }
 
     function loadScript(url) { const s = document.createElement('script'); s.src = url; document.body.appendChild(s); }
-    
     function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
     function handleInv(r) { INV_DATA = r.table.rows; populateSiteFilter(); updateInventoryWildcards(""); renderInventory(); checkLoading(); }
     function handleOpen(r) { OPEN_DATA = r.table.rows; processOpenings(); checkLoading(); }
-
     function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0 && OPEN_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
 
     function forceGet(row, i) {
@@ -239,26 +237,29 @@
         return isNaN(ts) ? null : new Date(ts);
     }
 
-    // --- LOGICA OPERACIONES (TU ORIGINAL) ---
     function processData() {
         lucide.createIcons();
         const pF = document.getElementById('prioFilter').value;
         const dF = document.getElementById('dateFrom').value ? new Date(document.getElementById('dateFrom').value) : null;
         const dT = document.getElementById('dateTo').value ? new Date(document.getElementById('dateTo').value) : null;
         let s = { r:0, p:0, pro:0, mttr:[], sla:0, urg:{U:0, M:0, B:0}, sucs:{}, oris:{}, pItems:[], cItems:[] };
+        
         for(let i=0; i < RAW_DATA.length; i++){
             const row = RAW_DATA[i];
             const branchRaw = forceGet(row, 2).toString().trim();
             const activityRaw = forceGet(row, 4).toString().trim();
             if (branchRaw === "SUCURSAL" || (!branchRaw && !activityRaw)) continue;
+            
             const status = forceGet(row, 8).toUpperCase();
             const dRep = toDate(row.c[1]?.v);
             const dSol = toDate(row.c[11]?.v);
             const urg = forceGet(row, 7).toUpperCase();
-            const ori = forceGet(row, 9).toUpperCase();
+            const ori = (forceGet(row, 9) || 'OTHER').toUpperCase();
+
             if (pF !== "ALL" && !urg.includes(pF)) continue;
             if (dF && dRep && dRep < dF) continue;
             if (dT && dRep && dRep > dT) continue;
+
             if(status.includes("REALIZADO")) {
                 s.r++;
                 s.cItems.push({ branch: branchRaw, act: activityRaw, date: forceGet(row, 11) });
@@ -273,8 +274,9 @@
             if(ori.includes("SOLICITUD")) s.pro++;
             if(urg.includes("URGENTE")) s.urg.U++; else if(urg.includes("MEDIO")) s.urg.M++; else s.urg.B++;
             s.sucs[branchRaw] = (s.sucs[branchRaw] || 0) + 1;
-            s.oris[ori || 'OTHER'] = (s.oris[ori || 'OTHER'] || 0) + 1;
+            s.oris[ori] = (s.oris[ori] || 0) + 1;
         }
+
         const total = s.r + s.p;
         document.getElementById('kpi-total').innerText = total;
         document.getElementById('kpi-res').innerText = Math.round((s.r/total)*100 || 0) + "%";
@@ -284,24 +286,50 @@
         document.getElementById('val-health-idx').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
         document.getElementById('kpi-pro-val').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
         document.getElementById('val-risk').innerText = s.urg.U > (total * 0.15) ? "High" : "Controlled";
+        
         document.getElementById('pending-list').innerHTML = s.pItems.map(i => `<div class="list-item"><div style="display:flex; justify-content:space-between;"><b>${i.branch}</b><span class="tag ${i.urg.includes('URGENTE') ? 'tag-urgent' : i.urg.includes('MEDIO') ? 'tag-med' : 'tag-low'}">${i.urg || 'LOW'}</span></div><div style="color:var(--slate-600); font-size:0.75rem;">${i.act}</div></div>`).join('');
         document.getElementById('closed-list').innerHTML = s.cItems.slice(-5).reverse().map(i => `<div class="list-item"><b>${i.branch}</b><div style="font-size:0.7rem;">${i.act.substring(0,45)}...</div><div style="font-size:0.65rem; color:var(--success); font-weight:700;">Closed: ${i.date}</div></div>`).join('');
+        
         drawOpsCharts(s, total);
     }
 
     function drawOpsCharts(s, total) {
-        const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10}}, colors:['#2563eb','#3b82f6','#60a5fa'] };
+        const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10, color:'#64748b'}}, animation:{startup:true, duration:800} };
+
+        // 1. Workload Distribution
         let sD = [['B','T',{role:'annotation'}]];
-        Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
-        new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, annotations:{alwaysOutside:true}});
+        Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
+        new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, colors:['#2563eb'], annotations:{alwaysOutside:true}});
+
+        // 2. Health Gauge
         new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',Math.round((s.r/total)*100 || 0)]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
+
+        // 3. Task Health Pie
         new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(google.visualization.arrayToDataTable([['S','V'],['Resolved',s.r],['Pending',s.p]]), {...opt, pieHole:0.6, colors:['#10b981','#f43f5e']});
-        new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), opt);
-        let oD = [['O','T']]; Object.entries(s.oris).forEach(([k,v])=>oD.push([k,v]));
-        new google.visualization.PieChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), opt);
+
+        // 4. Criticality Area
+        new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), {...opt, colors:['#6366f1']});
+
+        // 5. RESOURCE ORIGIN - BARRAS HORIZONTALES CON NUEVOS COLORES
+        let oD = [['Origin','Count', { role: 'style' }, { role: 'annotation' }]];
+        const modernPalette = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+        
+        Object.entries(s.oris).sort((a,b)=>b[1]-a[1]).forEach(([k,v], index) => {
+            const color = modernPalette[index % modernPalette.length];
+            oD.push([k, v, color, v.toString()]);
+        });
+        
+        new google.visualization.BarChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), {
+            ...opt,
+            chartArea: {width: '65%', height: '85%'},
+            hAxis: { gridlines: {count: 0}, textPosition: 'none' },
+            vAxis: { textStyle: {fontSize: 10, fontWeight: '600', color: '#1e293b'} },
+            legend: {position: 'none'},
+            bar: {groupWidth: '75%'}
+        });
     }
 
-    // --- LOGICA INVENTARIO (TU ORIGINAL) ---
+    // --- LOGICA INVENTARIO ---
     function updateInventoryWildcards(selectedSite) {
         let total = 0, oper = 0, falla = 0;
         for (let i = 1; i < INV_DATA.length; i++) {
@@ -330,13 +358,12 @@
             const status = forceGet(row, 7).toUpperCase();
             let color = '#71717a', bg = '#f4f4f5';
             if(status.includes('OPERATIVO')) { color = '#065f46'; bg = '#d1fae5'; stats.operative++; }
-            else if(status.includes('DAÑADO') || status.includes('FALLA')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
+            else if(status.includes('FALLA')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
             else if(status.includes('BODEGA')) { color = '#1e40af'; bg = '#dbeafe'; stats.warehouse++; }
             else stats.other++;
             tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
         }
-        const data = google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]);
-        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(data, { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
+        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]), { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
     }
 
     function populateSiteFilter() {
@@ -351,52 +378,29 @@
         document.querySelectorAll('#inventory-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
     }
 
-    // --- LOGICA APERTURAS (REVISADA SEGÚN TU EXCEL) ---
+    // --- LOGICA APERTURAS ---
     function processOpenings() {
-        const upcomingContainer = document.getElementById('upcoming-list');
-        const completedContainer = document.getElementById('completed-openings-list');
+        const upcomingContainer = document.getElementById('upcoming-list'), completedContainer = document.getElementById('completed-openings-list');
         let upHtml = '', compHtml = '', pCount = 0, dCount = 0;
 
         for (let i = 1; i < OPEN_DATA.length; i++) {
-            const row = OPEN_DATA[i];
-            const name = forceGet(row, 0); if(!name || name === "SITIO") continue;
-            
-            const date = forceGet(row, 1);
-            
-            // Revisa específicamente CONSTRUCTION PROGRESS (Col C) y SYSTEM DEPLOYMENT (Col D)
-            const obraRaw = forceGet(row, 2).toString().match(/\d+/) || ["0"];
-            const sistRaw = forceGet(row, 3).toString().match(/\d+/) || ["0"];
-            
-            const obraPct = parseInt(obraRaw[0]);
-            const sistPct = parseInt(sistRaw[0]);
-
-            // Se considera terminado si ambos están al 100%
+            const row = OPEN_DATA[i], name = forceGet(row, 0); if(!name || name === "SITIO") continue;
+            const obraPct = parseInt(forceGet(row, 2).toString().match(/\d+/)||["0"]);
+            const sistPct = parseInt(forceGet(row, 3).toString().match(/\d+/)||["0"]);
             const isCompleted = (obraPct >= 100 && sistPct >= 100);
 
-            const card = `
-                <div class="opening-card ${isCompleted ? 'completed' : ''}">
-                    ${isCompleted ? '<div class="ready-badge"><i data-lucide="check-circle"></i> READY</div>' : ''}
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-                        <div>
-                            <strong style="font-size:1.1rem; color:var(--primary);">${name}</strong>
-                        </div>
-                        <span class="date-badge">${date}</span>
-                    </div>
-                    <div>
-                        <div class="progress-text"><span>CONSTRUCTION PROGRESS</span> <span>${obraPct}%</span></div>
-                        <div class="progress-mini-bar"><div class="progress-fill" style="width: ${obraPct}%; background-color: ${obraPct >= 100 ? 'var(--success)' : 'var(--amber)'};"></div></div>
-                        <div class="progress-text" style="margin-top:10px;"><span>SYSTEM DEPLOYMENT</span> <span>${sistPct}%</span></div>
-                        <div class="progress-mini-bar"><div class="progress-fill" style="width: ${sistPct}%; background-color: ${sistPct >= 100 ? 'var(--success)' : 'var(--secondary)'};"></div></div>
-                    </div>
-                </div>`;
+            const card = `<div class="opening-card ${isCompleted ? 'completed' : ''}">
+                ${isCompleted ? '<div class="ready-badge"><i data-lucide="check-circle"></i> READY</div>' : ''}
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><b>${name}</b><span class="date-badge">${forceGet(row, 1)}</span></div>
+                <div class="progress-text"><span>CONSTRUCTION</span> <span>${obraPct}%</span></div>
+                <div class="progress-mini-bar"><div class="progress-fill" style="width:${obraPct}%; background:${obraPct>=100?'var(--success)':'var(--amber)'}"></div></div>
+                <div class="progress-text" style="margin-top:10px;"><span>SYSTEMS</span> <span>${sistPct}%</span></div>
+                <div class="progress-mini-bar"><div class="progress-fill" style="width:${sistPct}%; background:${sistPct>=100?'var(--success)':'var(--secondary)'}"></div></div>
+            </div>`;
 
-            if (isCompleted) { compHtml += card; dCount++; }
-            else { upHtml += card; pCount++; }
+            if (isCompleted) { compHtml += card; dCount++; } else { upHtml += card; pCount++; }
         }
-
-        upcomingContainer.innerHTML = upHtml || '<p style="padding:20px;">No pending openings.</p>';
-        completedContainer.innerHTML = compHtml || '<p style="padding:20px;">No finished projects.</p>';
-        
+        upcomingContainer.innerHTML = upHtml; completedContainer.innerHTML = compHtml;
         document.getElementById('open-kpi-pending').innerText = pCount;
         document.getElementById('open-kpi-done').innerText = dCount;
         document.getElementById('open-kpi-total').innerText = pCount + dCount;
@@ -404,12 +408,10 @@
     }
 
     function showTab(t) {
-        document.getElementById('section-ops').classList.toggle('hidden', t !== 'ops');
-        document.getElementById('section-inv').classList.toggle('hidden', t !== 'inv');
-        document.getElementById('section-open').classList.toggle('hidden', t !== 'open');
-        document.getElementById('btn-ops').classList.toggle('active', t === 'ops');
-        document.getElementById('btn-inv').classList.toggle('active', t === 'inv');
-        document.getElementById('btn-open').classList.toggle('active', t === 'open');
+        ['ops','inv','open'].forEach(x => {
+            document.getElementById(`section-${x}`).classList.toggle('hidden', x!==t);
+            document.getElementById(`btn-${x}`).classList.toggle('active', x===t);
+        });
         lucide.createIcons();
     }
 </script>
