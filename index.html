@@ -45,7 +45,13 @@
         select, input { padding: 8px; border-radius: 6px; border: 1px solid var(--slate-200); font-size: 0.85rem; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 22px; border-radius: 16px; border-top: 4px solid var(--secondary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .stat-card { background: white; padding: 22px; border-radius: 16px; border-top: 4px solid var(--secondary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
+        
+        /* Interactive Cards */
+        .stat-card.interactive { cursor: pointer; transition: 0.2s; border-bottom: 4px solid transparent; }
+        .stat-card.interactive:hover { transform: translateY(-3px); box-shadow: 0 8px 12px rgba(0,0,0,0.1); }
+        .stat-card.active-filter { background: var(--slate-100); border-bottom-color: var(--secondary); }
+
         .stat-label { font-size: 0.75rem; color: var(--slate-600); font-weight: 700; text-transform: uppercase; }
         .stat-value { display: block; font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
 
@@ -164,12 +170,25 @@
             <div><h1>Global Asset Inventory</h1><p>Strategic Asset Tracking by Site Status</p></div>
         </header>
         <div class="stats-grid">
-            <div class="stat-card" style="border-top-color: var(--primary)"><span class="stat-label">TOTAL ASSETS (SITE/GLOBAL)</span><span id="inv-kpi-total" class="stat-value">0</span></div>
-            <div class="stat-card" style="border-top-color: var(--success)"><span class="stat-label">OPERATIONAL STATUS</span><span id="inv-kpi-oper" class="stat-value" style="color: var(--success)">0</span></div>
-            <div class="stat-card" style="border-top-color: var(--danger)"><span class="stat-label">NON-OPERATIONAL / REVIEW</span><span id="inv-kpi-falla" class="stat-value" style="color: var(--danger)">0</span></div>
+            <div class="stat-card interactive" id="kpi-inv-all" onclick="filterByStatus('ALL')" style="border-top-color: var(--primary)">
+                <span class="stat-label">TOTAL ASSETS (SITE/GLOBAL)</span>
+                <span id="inv-kpi-total" class="stat-value">0</span>
+            </div>
+            <div class="stat-card interactive" id="kpi-inv-oper" onclick="filterByStatus('OPERATIVO')" style="border-top-color: var(--success)">
+                <span class="stat-label">OPERATIONAL STATUS</span>
+                <span id="inv-kpi-oper" class="stat-value" style="color: var(--success)">0</span>
+            </div>
+            <div class="stat-card interactive" id="kpi-inv-falla" onclick="filterByStatus('FALLA')" style="border-top-color: var(--danger)">
+                <span class="stat-label">DAÑADOS / REVISIÓN</span>
+                <span id="inv-kpi-falla" class="stat-value" style="color: var(--danger)">0</span>
+            </div>
+            <div class="stat-card interactive" id="kpi-inv-no" onclick="filterByStatus('NO ENTREGADO')" style="border-top-color: var(--amber)">
+                <span class="stat-label">NO ENTREGADOS</span>
+                <span id="inv-kpi-no" class="stat-value" style="color: var(--amber)">0</span>
+            </div>
         </div>
         <div class="filter-bar">
-            <div class="filter-group"><label>Branch / Site</label><select id="siteFilter" onchange="renderInventory()"><option value="">-- Global (All Sites) --</option></select></div>
+            <div class="filter-group"><label>Branch / Site</label><select id="siteFilter" onchange="resetStatusAndRender()"><option value="">-- Global (All Sites) --</option></select></div>
             <div class="filter-group" style="flex-grow: 1;"><label>Search Assets</label><input type="text" id="invSearch" placeholder="Filter by PN, Serial..." onkeyup="filterInventoryTable()"></div>
         </div>
         <div class="full-panel"><div class="panel-title"><i data-lucide="bar-chart-3"></i> SITE HEALTH DIAGRAM</div><div id="chart_site_distribution" style="height: 220px; width: 100%;"></div></div>
@@ -204,6 +223,7 @@
     const OPEN_ID = '12pQ8Kvh3x1p9DVkQ4H9u222Hqi7kB2bACHhchkbYEKI';
 
     let RAW_DATA = []; let INV_DATA = []; let OPEN_DATA = [];
+    let currentStatusFilter = 'ALL';
 
     google.charts.load('current', {'packages':['corechart', 'bar', 'gauge']});
     google.charts.setOnLoadCallback(init);
@@ -216,7 +236,7 @@
 
     function loadScript(url) { const s = document.createElement('script'); s.src = url; document.body.appendChild(s); }
     function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
-    function handleInv(r) { INV_DATA = r.table.rows; populateSiteFilter(); updateInventoryWildcards(""); renderInventory(); checkLoading(); }
+    function handleInv(r) { INV_DATA = r.table.rows; populateSiteFilter(); renderInventory(); checkLoading(); }
     function handleOpen(r) { OPEN_DATA = r.table.rows; processOpenings(); checkLoading(); }
     function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0 && OPEN_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
 
@@ -237,6 +257,7 @@
         return isNaN(ts) ? null : new Date(ts);
     }
 
+    // LÓGICA DE OPERATIONS (RESTAURADA TOTALMENTE)
     function processData() {
         lucide.createIcons();
         const pF = document.getElementById('prioFilter').value;
@@ -295,75 +316,77 @@
 
     function drawOpsCharts(s, total) {
         const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10, color:'#64748b'}}, animation:{startup:true, duration:800} };
-
-        // 1. Workload Distribution
         let sD = [['B','T',{role:'annotation'}]];
         Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
         new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, colors:['#2563eb'], annotations:{alwaysOutside:true}});
-
-        // 2. Health Gauge
         new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',Math.round((s.r/total)*100 || 0)]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
-
-        // 3. Task Health Pie
         new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(google.visualization.arrayToDataTable([['S','V'],['Resolved',s.r],['Pending',s.p]]), {...opt, pieHole:0.6, colors:['#10b981','#f43f5e']});
-
-        // 4. Criticality Area
         new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), {...opt, colors:['#6366f1']});
-
-        // 5. RESOURCE ORIGIN - BARRAS HORIZONTALES CON NUEVOS COLORES
         let oD = [['Origin','Count', { role: 'style' }, { role: 'annotation' }]];
         const modernPalette = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
-        
-        Object.entries(s.oris).sort((a,b)=>b[1]-a[1]).forEach(([k,v], index) => {
-            const color = modernPalette[index % modernPalette.length];
-            oD.push([k, v, color, v.toString()]);
-        });
-        
-        new google.visualization.BarChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), {
-            ...opt,
-            chartArea: {width: '65%', height: '85%'},
-            hAxis: { gridlines: {count: 0}, textPosition: 'none' },
-            vAxis: { textStyle: {fontSize: 10, fontWeight: '600', color: '#1e293b'} },
-            legend: {position: 'none'},
-            bar: {groupWidth: '75%'}
-        });
+        Object.entries(s.oris).sort((a,b)=>b[1]-a[1]).forEach(([k,v], idx) => oD.push([k, v, modernPalette[idx % 5], v.toString()]));
+        new google.visualization.BarChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), { ...opt, chartArea: {width: '65%', height: '85%'}, legend: {position: 'none'} });
     }
 
-    // --- LOGICA INVENTARIO ---
-    function updateInventoryWildcards(selectedSite) {
-        let total = 0, oper = 0, falla = 0;
-        for (let i = 1; i < INV_DATA.length; i++) {
-            const row = INV_DATA[i];
-            const site = forceGet(row, 0);
-            const status = forceGet(row, 7).toUpperCase();
-            if (selectedSite && site !== selectedSite) continue;
-            total++;
-            if (status.includes('OPERATIVO')) oper++;
-            else falla++;
-        }
-        document.getElementById('inv-kpi-total').innerText = total;
-        document.getElementById('inv-kpi-oper').innerText = oper;
-        document.getElementById('inv-kpi-falla').innerText = falla;
+    // LÓGICA DE INVENTARIO (CON KPIs INTERACTIVOS)
+    function filterByStatus(status) {
+        currentStatusFilter = status;
+        document.querySelectorAll('#section-inv .stat-card').forEach(c => c.classList.remove('active-filter'));
+        const idMap = {'ALL': 'kpi-inv-all', 'OPERATIVO': 'kpi-inv-oper', 'FALLA': 'kpi-inv-falla', 'NO ENTREGADO': 'kpi-inv-no'};
+        document.getElementById(idMap[status]).classList.add('active-filter');
+        renderInventory();
+    }
+
+    function resetStatusAndRender() {
+        currentStatusFilter = 'ALL';
+        document.querySelectorAll('#section-inv .stat-card').forEach(c => c.classList.remove('active-filter'));
+        renderInventory();
     }
 
     function renderInventory() {
         const site = document.getElementById('siteFilter').value;
         const tbody = document.getElementById('inventory-body');
         tbody.innerHTML = '';
-        updateInventoryWildcards(site);
-        let stats = { operative: 0, damaged: 0, warehouse: 0, other: 0 };
+        
+        let kpis = { total: 0, oper: 0, falla: 0, noEntregado: 0 };
+        let stats = { operative: 0, damaged: 0, notDelivered: 0, other: 0 };
+
         for(let i = 1; i < INV_DATA.length; i++) {
             const row = INV_DATA[i];
-            if (site && forceGet(row, 0) !== site) continue;
-            const status = forceGet(row, 7).toUpperCase();
-            let color = '#71717a', bg = '#f4f4f5';
-            if(status.includes('OPERATIVO')) { color = '#065f46'; bg = '#d1fae5'; stats.operative++; }
-            else if(status.includes('FALLA')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
-            else if(status.includes('BODEGA')) { color = '#1e40af'; bg = '#dbeafe'; stats.warehouse++; }
-            else stats.other++;
-            tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
+            const rowSite = forceGet(row, 0);
+            const statusText = forceGet(row, 7).toUpperCase();
+
+            // Conteos para Wildcards (Filtra solo por sitio)
+            if (!site || rowSite === site) {
+                kpis.total++;
+                if (statusText.includes('OPERATIVO')) kpis.oper++;
+                else if (statusText.includes('FALLA') || statusText.includes('DAÑADO')) kpis.falla++;
+                else if (statusText.includes('NO ENTREGADO')) kpis.noEntregado++;
+            }
+
+            // Filtrado de Tabla (Sitio + Status interactivo)
+            let matchSite = !site || rowSite === site;
+            let matchStatus = (currentStatusFilter === 'ALL') || 
+                              (currentStatusFilter === 'OPERATIVO' && statusText.includes('OPERATIVO')) ||
+                              (currentStatusFilter === 'FALLA' && (statusText.includes('FALLA') || statusText.includes('DAÑADO'))) ||
+                              (currentStatusFilter === 'NO ENTREGADO' && statusText.includes('NO ENTREGADO'));
+
+            if (matchSite && matchStatus) {
+                let color = '#71717a', bg = '#f4f4f5';
+                if(statusText.includes('OPERATIVO')) { color = '#065f46'; bg = '#d1fae5'; stats.operative++; }
+                else if(statusText.includes('FALLA') || statusText.includes('DAÑADO')) { color = '#991b1b'; bg = '#fee2e2'; stats.damaged++; }
+                else if(statusText.includes('NO ENTREGADO')) { color = '#b45309'; bg = '#fef3c7'; stats.notDelivered++; }
+                else stats.other++;
+
+                tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
+            }
         }
-        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['Bodega', stats.warehouse],['Otros', stats.other]]), { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#2563eb', '#64748b'] });
+        document.getElementById('inv-kpi-total').innerText = kpis.total;
+        document.getElementById('inv-kpi-oper').innerText = kpis.oper;
+        document.getElementById('inv-kpi-falla').innerText = kpis.falla;
+        document.getElementById('inv-kpi-no').innerText = kpis.noEntregado;
+
+        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['No Entregado', stats.notDelivered],['Otros', stats.other]]), { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#f59e0b', '#64748b'] });
     }
 
     function populateSiteFilter() {
@@ -378,26 +401,16 @@
         document.querySelectorAll('#inventory-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
     }
 
-    // --- LOGICA APERTURAS ---
+    // LÓGICA DE OPENINGS (RESTAURADA TOTALMENTE)
     function processOpenings() {
         const upcomingContainer = document.getElementById('upcoming-list'), completedContainer = document.getElementById('completed-openings-list');
         let upHtml = '', compHtml = '', pCount = 0, dCount = 0;
-
         for (let i = 1; i < OPEN_DATA.length; i++) {
             const row = OPEN_DATA[i], name = forceGet(row, 0); if(!name || name === "SITIO") continue;
             const obraPct = parseInt(forceGet(row, 2).toString().match(/\d+/)||["0"]);
             const sistPct = parseInt(forceGet(row, 3).toString().match(/\d+/)||["0"]);
             const isCompleted = (obraPct >= 100 && sistPct >= 100);
-
-            const card = `<div class="opening-card ${isCompleted ? 'completed' : ''}">
-                ${isCompleted ? '<div class="ready-badge"><i data-lucide="check-circle"></i> READY</div>' : ''}
-                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><b>${name}</b><span class="date-badge">${forceGet(row, 1)}</span></div>
-                <div class="progress-text"><span>CONSTRUCTION</span> <span>${obraPct}%</span></div>
-                <div class="progress-mini-bar"><div class="progress-fill" style="width:${obraPct}%; background:${obraPct>=100?'var(--success)':'var(--amber)'}"></div></div>
-                <div class="progress-text" style="margin-top:10px;"><span>SYSTEMS</span> <span>${sistPct}%</span></div>
-                <div class="progress-mini-bar"><div class="progress-fill" style="width:${sistPct}%; background:${sistPct>=100?'var(--success)':'var(--secondary)'}"></div></div>
-            </div>`;
-
+            const card = `<div class="opening-card ${isCompleted ? 'completed' : ''}">${isCompleted ? '<div class="ready-badge"><i data-lucide="check-circle"></i> READY</div>' : ''}<div style="display:flex; justify-content:space-between; margin-bottom:12px;"><b>${name}</b><span class="date-badge">${forceGet(row, 1)}</span></div><div class="progress-text"><span>CONSTRUCTION</span> <span>${obraPct}%</span></div><div class="progress-mini-bar"><div class="progress-fill" style="width:${obraPct}%; background:${obraPct>=100?'var(--success)':'var(--amber)'}"></div></div><div class="progress-text" style="margin-top:10px;"><span>SYSTEMS</span> <span>${sistPct}%</span></div><div class="progress-mini-bar"><div class="progress-fill" style="width:${sistPct}%; background:${sistPct>=100?'var(--success)':'var(--secondary)'}"></div></div></div>`;
             if (isCompleted) { compHtml += card; dCount++; } else { upHtml += card; pCount++; }
         }
         upcomingContainer.innerHTML = upHtml; completedContainer.innerHTML = compHtml;
