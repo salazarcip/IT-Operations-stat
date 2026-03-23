@@ -47,7 +47,6 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; padding: 22px; border-radius: 16px; border-top: 4px solid var(--secondary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
         
-        /* Interactive Cards */
         .stat-card.interactive { cursor: pointer; transition: 0.2s; border-bottom: 4px solid transparent; }
         .stat-card.interactive:hover { transform: translateY(-3px); box-shadow: 0 8px 12px rgba(0,0,0,0.1); }
         .stat-card.active-filter { background: var(--slate-100); border-bottom-color: var(--secondary); }
@@ -230,7 +229,8 @@
 
     function init() {
         loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L500`);
-        loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863`);
+        // CAMBIO CRÍTICO: Se añade range y headers=1 para asegurar que la fila 2 sea tratada como dato
+        loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863&range=A1:Z500&headers=1`);
         loadScript(`https://docs.google.com/spreadsheets/d/${OPEN_ID}/gviz/tq?tqx=responseHandler:handleOpen&sheet=Sheet1`);
     }
 
@@ -257,7 +257,6 @@
         return isNaN(ts) ? null : new Date(ts);
     }
 
-    // LÓGICA DE OPERATIONS (RESTAURADA TOTALMENTE)
     function processData() {
         lucide.createIcons();
         const pF = document.getElementById('prioFilter').value;
@@ -328,7 +327,6 @@
         new google.visualization.BarChart(document.getElementById('chart_dist')).draw(google.visualization.arrayToDataTable(oD), { ...opt, chartArea: {width: '65%', height: '85%'}, legend: {position: 'none'} });
     }
 
-    // LÓGICA DE INVENTARIO (CON KPIs INTERACTIVOS)
     function filterByStatus(status) {
         currentStatusFilter = status;
         document.querySelectorAll('#section-inv .stat-card').forEach(c => c.classList.remove('active-filter'));
@@ -351,12 +349,12 @@
         let kpis = { total: 0, oper: 0, falla: 0, noEntregado: 0 };
         let stats = { operative: 0, damaged: 0, notDelivered: 0, other: 0 };
 
-        for(let i = 1; i < INV_DATA.length; i++) {
+        // CAMBIO CRÍTICO: i=0 porque con headers=1 la fila 2 del sheet es el elemento 0 del array
+        for(let i = 0; i < INV_DATA.length; i++) {
             const row = INV_DATA[i];
             const rowSite = forceGet(row, 0);
             const statusText = forceGet(row, 7).toUpperCase();
 
-            // Conteos para Wildcards (Filtra solo por sitio)
             if (!site || rowSite === site) {
                 kpis.total++;
                 if (statusText.includes('OPERATIVO')) kpis.oper++;
@@ -364,7 +362,6 @@
                 else if (statusText.includes('NO ENTREGADO')) kpis.noEntregado++;
             }
 
-            // Filtrado de Tabla (Sitio + Status interactivo)
             let matchSite = !site || rowSite === site;
             let matchStatus = (currentStatusFilter === 'ALL') || 
                               (currentStatusFilter === 'OPERATIVO' && statusText.includes('OPERATIVO')) ||
@@ -392,7 +389,8 @@
     function populateSiteFilter() {
         const select = document.getElementById('siteFilter');
         const sites = new Set();
-        for(let i=1; i < INV_DATA.length; i++) { const s = forceGet(INV_DATA[i], 0); if(s) sites.add(s); }
+        // i=0 también aquí
+        for(let i=0; i < INV_DATA.length; i++) { const s = forceGet(INV_DATA[i], 0); if(s) sites.add(s); }
         Array.from(sites).sort().forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.innerText = s; select.appendChild(opt); });
     }
 
@@ -401,7 +399,6 @@
         document.querySelectorAll('#inventory-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none');
     }
 
-    // LÓGICA DE OPENINGS (RESTAURADA TOTALMENTE)
     function processOpenings() {
         const upcomingContainer = document.getElementById('upcoming-list'), completedContainer = document.getElementById('completed-openings-list');
         let upHtml = '', compHtml = '', pCount = 0, dCount = 0;
