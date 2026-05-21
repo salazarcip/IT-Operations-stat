@@ -217,8 +217,9 @@
 </div>
 
 <script type="text/javascript">
-    const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY';
-    const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s';
+    // SOLUCCIÓN DE RUTAS: Cada constante apunta a su archivo correspondiente sin cruzarse
+    const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY'; // Archivo original con pestaña PENDIENTES
+    const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s'; // Archivo nuevo con las +568 filas de Inventario
     const OPEN_ID = '12pQ8Kvh3x1p9DVkQ4H9u222Hqi7kB2bACHhchkbYEKI';
 
     let RAW_DATA = []; let INV_DATA = []; let OPEN_DATA = [];
@@ -228,17 +229,22 @@
     google.charts.setOnLoadCallback(init);
 
     function init() {
-        loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L500`);
-        // CAMBIO CRÍTICO: Se añade range y headers=1 para asegurar que la fila 2 sea tratada como dato
-        loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863&range=A1:Z500&headers=1`);
+        // Los rangos se mantienen abiertos sin límite de filas para evitar cortes futuros en el conteo
+        loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L`);
+        loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863&range=A1:Z&headers=1`);
         loadScript(`https://docs.google.com/spreadsheets/d/${OPEN_ID}/gviz/tq?tqx=responseHandler:handleOpen&sheet=Sheet1`);
     }
 
     function loadScript(url) { const s = document.createElement('script'); s.src = url; document.body.appendChild(s); }
-    function handleOps(r) { RAW_DATA = r.table.rows; checkLoading(); processData(); }
-    function handleInv(r) { INV_DATA = r.table.rows; populateSiteFilter(); renderInventory(); checkLoading(); }
-    function handleOpen(r) { OPEN_DATA = r.table.rows; processOpenings(); checkLoading(); }
-    function checkLoading() { if (RAW_DATA.length > 0 && INV_DATA.length > 0 && OPEN_DATA.length > 0) document.getElementById('loading').style.display = 'none'; }
+    function handleOps(r) { RAW_DATA = r.table.rows || []; checkLoading(); processData(); }
+    function handleInv(r) { INV_DATA = r.table.rows || []; populateSiteFilter(); renderInventory(); checkLoading(); }
+    function handleOpen(r) { OPEN_DATA = r.table.rows || []; processOpenings(); checkLoading(); }
+    
+    function checkLoading() { 
+        if (RAW_DATA.length >= 0 && INV_DATA.length >= 0 && OPEN_DATA.length >= 0) {
+            document.getElementById('loading').style.display = 'none'; 
+        }
+    }
 
     function forceGet(row, i) {
         if (!row || !row.c || !row.c[i]) return "";
@@ -314,6 +320,7 @@
     }
 
     function drawOpsCharts(s, total) {
+        if(total === 0) return;
         const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10, color:'#64748b'}}, animation:{startup:true, duration:800} };
         let sD = [['B','T',{role:'annotation'}]];
         Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
@@ -331,7 +338,8 @@
         currentStatusFilter = status;
         document.querySelectorAll('#section-inv .stat-card').forEach(c => c.classList.remove('active-filter'));
         const idMap = {'ALL': 'kpi-inv-all', 'OPERATIVO': 'kpi-inv-oper', 'FALLA': 'kpi-inv-falla', 'NO ENTREGADO': 'kpi-inv-no'};
-        document.getElementById(idMap[status]).classList.add('active-filter');
+        const activeId = idMap[status];
+        if (activeId) document.getElementById(activeId).classList.add('active-filter');
         renderInventory();
     }
 
@@ -344,12 +352,11 @@
     function renderInventory() {
         const site = document.getElementById('siteFilter').value;
         const tbody = document.getElementById('inventory-body');
-        tbody.innerHTML = '';
         
         let kpis = { total: 0, oper: 0, falla: 0, noEntregado: 0 };
         let stats = { operative: 0, damaged: 0, notDelivered: 0, other: 0 };
+        let rowsHtml = []; 
 
-        // CAMBIO CRÍTICO: i=0 porque con headers=1 la fila 2 del sheet es el elemento 0 del array
         for(let i = 0; i < INV_DATA.length; i++) {
             const row = INV_DATA[i];
             const rowSite = forceGet(row, 0);
@@ -375,21 +382,26 @@
                 else if(statusText.includes('NO ENTREGADO')) { color = '#b45309'; bg = '#fef3c7'; stats.notDelivered++; }
                 else stats.other++;
 
-                tbody.innerHTML += `<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`;
+                rowsHtml.push(`<tr><td><b>${forceGet(row,1)}</b></td><td>${forceGet(row,2)}</td><td>${forceGet(row,3)}</td><td>${forceGet(row,4)}</td><td>${forceGet(row,5)}</td><td>${forceGet(row,6)}</td><td><span class="status-badge" style="background:${bg}; color:${color}">${forceGet(row,7)}</span></td><td>${forceGet(row,8)}</td></tr>`);
             }
         }
+        
+        tbody.innerHTML = rowsHtml.join('');
+
         document.getElementById('inv-kpi-total').innerText = kpis.total;
         document.getElementById('inv-kpi-oper').innerText = kpis.oper;
         document.getElementById('inv-kpi-falla').innerText = kpis.falla;
         document.getElementById('inv-kpi-no').innerText = kpis.noEntregado;
 
-        new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['No Entregado', stats.notDelivered],['Otros', stats.other]]), { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#f59e0b', '#64748b'] });
+        if (kpis.total > 0) {
+            new google.visualization.PieChart(document.getElementById('chart_site_distribution')).draw(google.visualization.arrayToDataTable([['E', 'C'],['Operativo', stats.operative],['Falla', stats.damaged],['No Entregado', stats.notDelivered],['Otros', stats.other]]), { pieHole: 0.4, colors: ['#10b981', '#ef4444', '#f59e0b', '#64748b'] });
+        }
     }
 
     function populateSiteFilter() {
         const select = document.getElementById('siteFilter');
+        select.innerHTML = '<option value="">-- Global (All Sites) --</option>';
         const sites = new Set();
-        // i=0 también aquí
         for(let i=0; i < INV_DATA.length; i++) { const s = forceGet(INV_DATA[i], 0); if(s) sites.add(s); }
         Array.from(sites).sort().forEach(s => { const opt = document.createElement('option'); opt.value = s; opt.innerText = s; select.appendChild(opt); });
     }
