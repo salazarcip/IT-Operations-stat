@@ -71,7 +71,7 @@
         .roi-highlight { color: #38bdf8; font-weight: 800; }
 
         .inventory-table { width: 100%; border-collapse: collapse; }
-        .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); }
+        .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); border-bottom: 2px solid var(--slate-200); }
         .inventory-table td { padding: 12px; border-bottom: 1px solid var(--slate-200); font-size: 0.8rem; }
         .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; min-width: 85px; text-align: center; display: inline-block; }
 
@@ -217,9 +217,8 @@
 </div>
 
 <script type="text/javascript">
-    // SOLUCCIÓN DE RUTAS: Cada constante apunta a su archivo correspondiente sin cruzarse
-    const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY'; // Archivo original con pestaña PENDIENTES
-    const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s'; // Archivo nuevo con las +568 filas de Inventario
+    const OPS_ID = '1fyZNyTtYZAQv3sTCAr-DN1q8R8z9xMViBBC9sqLqoIY'; 
+    const INV_ID = '1XM2RTOfZa9Z5r8M6eq7CDM7sOMsEADWjhE0ovkfYZ_s'; 
     const OPEN_ID = '12pQ8Kvh3x1p9DVkQ4H9u222Hqi7kB2bACHhchkbYEKI';
 
     let RAW_DATA = []; let INV_DATA = []; let OPEN_DATA = [];
@@ -229,7 +228,6 @@
     google.charts.setOnLoadCallback(init);
 
     function init() {
-        // Los rangos se mantienen abiertos sin límite de filas para evitar cortes futuros en el conteo
         loadScript(`https://docs.google.com/spreadsheets/d/${OPS_ID}/gviz/tq?tqx=responseHandler:handleOps&sheet=PENDIENTES&range=A1:L`);
         loadScript(`https://docs.google.com/spreadsheets/d/${INV_ID}/gviz/tq?tqx=responseHandler:handleInv&gid=630204863&range=A1:Z&headers=1`);
         loadScript(`https://docs.google.com/spreadsheets/d/${OPEN_ID}/gviz/tq?tqx=responseHandler:handleOpen&sheet=Sheet1`);
@@ -297,35 +295,46 @@
                 s.p++;
                 s.pItems.push({ branch: branchRaw, act: activityRaw, urg });
             }
-            if(ori.includes("SOLICITUD")) s.pro++;
+
+            const textoCombinado = (ori + " " + activityRaw).toUpperCase();
+            if (textoCombinado.includes("SOLICITUD") || textoCombinado.includes("MANTENIMIENTO") || textoCombinado.includes("PREVENTIVO") || textoCombinado.includes("REVISION")) {
+                s.pro++;
+            }
+
             if(urg.includes("URGENTE")) s.urg.U++; else if(urg.includes("MEDIO")) s.urg.M++; else s.urg.B++;
             s.sucs[branchRaw] = (s.sucs[branchRaw] || 0) + 1;
             s.oris[ori] = (s.oris[ori] || 0) + 1;
         }
 
         const total = s.r + s.p;
+        const healthIdxValue = total > 0 ? Math.round(((total - s.urg.U) / total) * 100) : 0;
+
         document.getElementById('kpi-total').innerText = total;
         document.getElementById('kpi-res').innerText = Math.round((s.r/total)*100 || 0) + "%";
         const avg = s.mttr.length > 0 ? (s.mttr.reduce((a,b)=>a+b,0)/s.mttr.length) : 0;
         document.getElementById('kpi-speed').innerText = avg.toFixed(1);
         document.getElementById('val-sla').innerText = s.r > 0 ? Math.round((s.sla/s.r)*100) + "%" : "0%";
-        document.getElementById('val-health-idx').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
+        
+        document.getElementById('val-health-idx').innerText = healthIdxValue + "%";
         document.getElementById('kpi-pro-val').innerText = total > 0 ? Math.round((s.pro/total)*100) + "%" : "0%";
-        document.getElementById('val-risk').innerText = s.urg.U > (total * 0.15) ? "High" : "Controlled";
+        document.getElementById('val-risk').innerText = s.urg.U > (total * 0.15) ? "High Risk" : "Controlled";
         
         document.getElementById('pending-list').innerHTML = s.pItems.map(i => `<div class="list-item"><div style="display:flex; justify-content:space-between;"><b>${i.branch}</b><span class="tag ${i.urg.includes('URGENTE') ? 'tag-urgent' : i.urg.includes('MEDIO') ? 'tag-med' : 'tag-low'}">${i.urg || 'LOW'}</span></div><div style="color:var(--slate-600); font-size:0.75rem;">${i.act}</div></div>`).join('');
         document.getElementById('closed-list').innerHTML = s.cItems.slice(-5).reverse().map(i => `<div class="list-item"><b>${i.branch}</b><div style="font-size:0.7rem;">${i.act.substring(0,45)}...</div><div style="font-size:0.65rem; color:var(--success); font-weight:700;">Closed: ${i.date}</div></div>`).join('');
         
-        drawOpsCharts(s, total);
+        drawOpsCharts(s, total, healthIdxValue);
     }
 
-    function drawOpsCharts(s, total) {
+    function drawOpsCharts(s, total, healthIdxValue) {
         if(total === 0) return;
         const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10, color:'#64748b'}}, animation:{startup:true, duration:800} };
         let sD = [['B','T',{role:'annotation'}]];
         Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
         new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, colors:['#2563eb'], annotations:{alwaysOutside:true}});
-        new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',Math.round((s.r/total)*100 || 0)]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
+        
+        // CORRECCIÓN CLAVE: El velocímetro ahora se alimenta de la salud real calculada, no de los cierres
+        new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',healthIdxValue]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
+        
         new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(google.visualization.arrayToDataTable([['S','V'],['Resolved',s.r],['Pending',s.p]]), {...opt, pieHole:0.6, colors:['#10b981','#f43f5e']});
         new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), {...opt, colors:['#6366f1']});
         let oD = [['Origin','Count', { role: 'style' }, { role: 'annotation' }]];
