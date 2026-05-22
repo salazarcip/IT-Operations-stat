@@ -71,7 +71,7 @@
         .roi-highlight { color: #38bdf8; font-weight: 800; }
 
         .inventory-table { width: 100%; border-collapse: collapse; }
-        .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); border-bottom: 2px solid var(--slate-200); }
+        .inventory-table th { background: var(--slate-100); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--slate-600); border-bottom: 2px solid var(--slate-200); }
         .inventory-table td { padding: 12px; border-bottom: 1px solid var(--slate-200); font-size: 0.8rem; }
         .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; min-width: 85px; text-align: center; display: inline-block; }
 
@@ -159,7 +159,7 @@
 
         <div class="grid-3">
             <div class="panel"><div class="panel-title"><i data-lucide="briefcase"></i> Resource Origin</div><div id="chart_dist" style="height: 250px;"></div></div>
-            <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Criticality Matrix</div><div id="chart_urgency" style="height: 250px;"></div></div>
+            <div class="panel"><div class="panel-title"><i data-lucide="alert-triangle"></i> Case Volume by Criticality</div><div id="chart_urgency" style="height: 250px;"></div></div>
             <div class="panel"><div class="panel-title"><i data-lucide="layers"></i> Task Health Overview</div><div id="chart_health_pie" style="height: 250px;"></div></div>
         </div>
     </div>
@@ -328,15 +328,31 @@
     function drawOpsCharts(s, total, healthIdxValue) {
         if(total === 0) return;
         const opt = { backgroundColor:'transparent', chartArea:{width:'85%', height:'75%'}, legend:{position:'bottom', textStyle:{fontSize:10, color:'#64748b'}}, animation:{startup:true, duration:800} };
+        
+        // 1. Gráfico de barras horizontales de sucursales
         let sD = [['B','T',{role:'annotation'}]];
         Object.entries(s.sucs).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([k,v]) => sD.push([k,v,((v/total)*100).toFixed(1)+'%']));
         new google.visualization.ColumnChart(document.getElementById('chart_main_full')).draw(google.visualization.arrayToDataTable(sD), {...opt, colors:['#2563eb'], annotations:{alwaysOutside:true}});
         
-        // CORRECCIÓN CLAVE: El velocímetro ahora se alimenta de la salud real calculada, no de los cierres
+        // 2. Velocímetro de salud
         new google.visualization.Gauge(document.getElementById('chart_health_gauge')).draw(google.visualization.arrayToDataTable([['Label','Value'],['Health',healthIdxValue]]), {redFrom:0, redTo:60, yellowFrom:60, yellowTo:85, greenFrom:85, greenTo:100});
         
+        // 3. Gráfico de Donut (Estado General de Tickets Cerrados vs Abiertos)
         new google.visualization.PieChart(document.getElementById('chart_health_pie')).draw(google.visualization.arrayToDataTable([['S','V'],['Resolved',s.r],['Pending',s.p]]), {...opt, pieHole:0.6, colors:['#10b981','#f43f5e']});
-        new google.visualization.AreaChart(document.getElementById('chart_urgency')).draw(google.visualization.arrayToDataTable([['L','V'],['Low',s.urg.B],['Med',s.urg.M],['Urg',s.urg.U]]), {...opt, colors:['#6366f1']});
+        
+        // MODIFICACIÓN DE CRITICALITY MATRIX A CONTEO DIRECTO (Gráfico de Columnas Verticales Limpias)
+        let matrixData = [
+            ['Criticality', 'Cases', { role: 'style' }, { role: 'annotation' }],
+            ['Bajo', s.urg.B, '#10b981', s.urg.B.toString()],
+            ['Medio', s.urg.M, '#f59e0b', s.urg.M.toString()],
+            ['Urgente', s.urg.U, '#ef4444', s.urg.U.toString()]
+        ];
+        new google.visualization.ColumnChart(document.getElementById('chart_urgency')).draw(
+            google.visualization.arrayToDataTable(matrixData), 
+            { ...opt, legend: { position: 'none' }, annotations: { alwaysOutside: true } }
+        );
+
+        // 5. Gráfico de Origen
         let oD = [['Origin','Count', { role: 'style' }, { role: 'annotation' }]];
         const modernPalette = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
         Object.entries(s.oris).sort((a,b)=>b[1]-a[1]).forEach(([k,v], idx) => oD.push([k, v, modernPalette[idx % 5], v.toString()]));
